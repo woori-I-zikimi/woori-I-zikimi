@@ -32,8 +32,8 @@ export default function Home() {
                 <span className="text-xs font-mono text-gray-500">2 days ago</span>
               </div>
               <div className="flex gap-4 text-xs font-mono text-gray-400">
-                <span>💬 {Math.floor(Math.random() * 25) + 8}</span>
-                <span>❤️ {Math.floor(Math.random() * 60) + 15}</span>
+                <span>💬 {8}</span>
+                <span>❤️ {2}</span>
               </div>
             </div>
           </Link>
