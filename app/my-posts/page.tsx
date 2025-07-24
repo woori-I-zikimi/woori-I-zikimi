@@ -6,7 +6,7 @@ import { posts } from "../data/posts"
 import { Edit, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import ScrollingSidebar from "../components/ScrollingSidebar"
-import CategorySearchAndNewPost from "../components/CategorySearchAndNewPost"
+import SearchAndNewPost from "../components/SearchAndNewPost"
 
 // Simulate user's posts (in a real app, this would come from your database)
 const userPosts = posts.filter((_, index) => index % 2 === 0) // Mock: every other post belongs to user
@@ -33,7 +33,7 @@ export default function MyPostsPage() {
       {/* Reduced right padding */}
       <ScrollingSidebar />
       <h1 className="text-3xl font-pixel mb-6">My Posts</h1>
-      <CategorySearchAndNewPost />
+      <SearchAndNewPost />
       {myPosts.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-6xl mb-4">📝</div>

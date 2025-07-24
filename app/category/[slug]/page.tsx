@@ -2,7 +2,7 @@ import Link from "next/link"
 import { posts } from "../../data/posts"
 import { notFound } from "next/navigation"
 import ScrollingSidebar from "../../components/ScrollingSidebar"
-import CategorySearchAndNewPost from "../../components/CategorySearchAndNewPost"
+import SearchAndNewPost from "../../components/SearchAndNewPost"
 
 export default function CategoryPage({ params }: { params: { slug: string } }) {
   const category = params.slug.charAt(0).toUpperCase() + params.slug.slice(1)
@@ -18,7 +18,7 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
       {/* Reduced right padding */}
       <ScrollingSidebar />
       <h2 className="text-2xl font-pixel mb-6">{category} Posts</h2>
-      <CategorySearchAndNewPost />
+      <SearchAndNewPost />
       <div className="grid gap-6">
         {categoryPosts.map((post) => (
           <Link

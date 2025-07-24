@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { posts } from "../data/posts"
 import ScrollingSidebar from "../components/ScrollingSidebar"
-import CategorySearchAndNewPost from "../components/CategorySearchAndNewPost"
+import SearchAndNewPost from "../components/SearchAndNewPost"
 import { Search } from "lucide-react"
 
 export default function SearchPage() {
@@ -27,7 +27,7 @@ export default function SearchPage() {
         <h1 className="text-2xl font-pixel">Search Results</h1>
       </div>
 
-      <CategorySearchAndNewPost />
+      <SearchAndNewPost />
 
       <p className="font-mono text-gray-400 mb-6">
         {query ? (

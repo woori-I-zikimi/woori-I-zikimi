@@ -2,7 +2,7 @@ import Link from "next/link"
 import { posts } from "../data/posts"
 import { Flame } from "lucide-react"
 import ScrollingSidebar from "../components/ScrollingSidebar"
-import CategorySearchAndNewPost from "../components/CategorySearchAndNewPost"
+import SearchAndNewPost from "../components/SearchAndNewPost"
 
 // Simulate hot posts with mock like counts
 const hotPosts = posts
@@ -25,7 +25,7 @@ export default function HotPostsPage() {
         <h1 className="text-3xl font-pixel">Hot Posts</h1>
         <Flame className="w-8 h-8 text-red-400" />
       </div>
-      <CategorySearchAndNewPost />
+      <SearchAndNewPost />
       <p className="font-mono text-gray-400 mb-8">
         🔥 The most liked posts in the pixel universe! These posts are on fire!
       </p>
