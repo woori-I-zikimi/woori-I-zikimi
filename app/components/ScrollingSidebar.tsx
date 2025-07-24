@@ -29,9 +29,10 @@ const ScrollingSidebar = ({ onCategoryFilter, selectedCategory }: ScrollingSideb
 
   const categories = [
     { name: "All", value: null, icon: Home, href: "/" },
-    { name: "Tech", value: "Tech", icon: Monitor, href: "/category/tech" },
-    { name: "Art", value: "Art", icon: Palette, href: "/category/art" },
-    { name: "Finance", value: "Finance", icon: DollarSign, href: "/category/finance" },
+    { name: "자유", value: "Free", icon: Monitor, href: "/category/free" },
+    { name: "면접", value: "Art", icon: Palette, href: "/category/interview" },
+    { name: "프로젝트", value: "Finance", icon: DollarSign, href: "/category/project" },
+    { name: "수업", value: "Finance", icon: DollarSign, href: "/category/class" },
   ]
 
   return (

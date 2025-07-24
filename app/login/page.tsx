@@ -62,7 +62,7 @@ const LoginPage = () => {
           {/* Logo and Title */}
           <div className="flex flex-col items-center mb-8">
             <PixelLogo />
-            <h1 className="text-2xl font-pixel mb-2">Player Login</h1>
+            <h1 className="text-2xl font-pixel mb-2">Login</h1>
             <p className="font-mono text-sm text-gray-400">Enter your credentials to continue</p>
           </div>
 

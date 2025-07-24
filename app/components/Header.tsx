@@ -14,14 +14,16 @@ export default function Header() {
   return (
     <header className="py-8 flex flex-col items-center">
       <Link href="/" className="hover:opacity-80 transition-opacity">
-        <h1 className="text-4xl font-bold text-center font-pixel mb-2">Pixel Wisdom</h1>
+        <h1 className="text-4xl font-bold text-center font-pixel mb-2">woori -I- zikimi</h1>
       </Link>
       <p className="text-xl text-center font-mono flex items-center">
-        <Link href="/category/tech" className="hover:text-green-300 transition-colors">Tech</Link>
+        <Link href="/category/tech" className="hover:text-green-300 transition-colors">Free</Link>
         <span className="mx-2">•</span>
-        <Link href="/category/art" className="hover:text-green-300 transition-colors">Art</Link>
+        <Link href="/category/art" className="hover:text-green-300 transition-colors">Interview</Link>
         <span className="mx-2">•</span>
-        <Link href="/category/finance" className="hover:text-green-300 transition-colors">Finance</Link>
+        <Link href="/category/finance" className="hover:text-green-300 transition-colors">Project</Link>
+        <span className="mx-2">•</span>
+        <Link href="/category/finance" className="hover:text-green-300 transition-colors">Class</Link>
         <BlinkingCursor />
       </p>
       <div className="mt-4">

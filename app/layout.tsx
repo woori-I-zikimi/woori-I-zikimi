@@ -19,7 +19,7 @@ const vt323 = VT323({
 })
 
 export const metadata = {
-  title: "Pixel Wisdom",
+  title: "woori -I- zikimi",
   description: "Tech, Art, and Finance tips with a retro twist",
     generator: 'v0.dev'
 }
