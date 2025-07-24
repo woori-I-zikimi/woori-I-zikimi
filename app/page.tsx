@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { posts } from "./data/posts"
 import ScrollingSidebar from "./components/ScrollingSidebar"
-import HomeSearchAndNewPost from "./components/HomeSearchAndNewPost"
+import SearchAndNewPost from "./components/SearchAndNewPost"
 
 export default function Home() {
   // Sort posts by ID descending to show latest first
@@ -14,7 +14,7 @@ export default function Home() {
       {" "}
       {/* Reduced right padding */}
       <ScrollingSidebar />
-      <HomeSearchAndNewPost />
+      <SearchAndNewPost />
       <div className="grid gap-6">
         {latestPosts.map((post) => (
           <Link
