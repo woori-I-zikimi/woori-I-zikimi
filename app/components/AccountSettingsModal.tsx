@@ -58,6 +58,37 @@ const AccountSettingsModal = ({ isOpen, onClose }: AccountSettingsModalProps) =>
     } finally {
       setIsLoading(false)
     }
+
+    try {
+      const res = await fetch("/api/auth/updatePw", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage(data.message || "비밀번호 변경 실패");
+        return;
+      }
+
+      setMessage("Password updated successfully!");
+      setTimeout(() => {
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setMessage("");
+        onClose();
+      }, 2000);
+    } catch (error) {
+      setMessage("Failed to update password. Please try again.");
+    }
   }
 
   if (!isOpen) return null

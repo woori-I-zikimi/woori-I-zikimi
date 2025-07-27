@@ -3,6 +3,7 @@
 import { sql } from "@vercel/postgres";
 import { NextResponse } from "next/server";
 import { SignJWT } from "jose"; // JWT 생성을 위해 import
+import bcrypt from "bcrypt";
 
 export async function POST(req: Request) {
     try {
@@ -11,12 +12,12 @@ export async function POST(req: Request) {
         const result = await sql`SELECT * FROM "User" WHERE id = ${id};`;
         const user = result.rows[0];
 
-        if (!user || user.password !== password) {
+        // console.log("입력한 패스워드:", password);
+        // console.log("DB에서 불러온 해시:", user.password);
+
+        if (!user || !(await bcrypt.compare(password, user.password))) {
             return NextResponse.json(
-                {
-                    success: false,
-                    message: "아이디 또는 비밀번호가 틀렸습니다.",
-                },
+                { success: false, message: "아이디 또는 비밀번호가 틀렸습니다." },
                 { status: 401 }
             );
         }
