@@ -17,13 +17,13 @@ export default function Header() {
         <h1 className="text-4xl font-bold text-center font-pixel mb-2">woori -I- zikimi</h1>
       </Link>
       <p className="text-xl text-center font-mono flex items-center">
-        <Link href="/category/tech" className="hover:text-green-300 transition-colors">Free</Link>
+        <Link href="/category/free" className="hover:text-green-300 transition-colors">Free</Link>
         <span className="mx-2">•</span>
-        <Link href="/category/art" className="hover:text-green-300 transition-colors">Interview</Link>
+        <Link href="/category/interview" className="hover:text-green-300 transition-colors">Interview</Link>
         <span className="mx-2">•</span>
-        <Link href="/category/finance" className="hover:text-green-300 transition-colors">Project</Link>
+        <Link href="/category/project" className="hover:text-green-300 transition-colors">Project</Link>
         <span className="mx-2">•</span>
-        <Link href="/category/finance" className="hover:text-green-300 transition-colors">Class</Link>
+        <Link href="/category/class" className="hover:text-green-300 transition-colors">Class</Link>
         <BlinkingCursor />
       </p>
       <div className="mt-4">

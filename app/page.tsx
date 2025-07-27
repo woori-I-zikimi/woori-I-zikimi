@@ -22,7 +22,7 @@ export default function Home() {
 
 
   return (
-    <div className="pr-16">
+    <div className="pr-16 min-h-screen">
       {" "}
       {/* Reduced right padding */}
       <ScrollingSidebar />
