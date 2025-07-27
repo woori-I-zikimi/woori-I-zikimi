@@ -25,11 +25,11 @@ export async function POST(req: Request) {
     }
 
     // 2. 요청 본문 파싱
-    const { title, content, category } = await req.json();
+    const { title, content, category, code } = await req.json();
 
     if (!title || !content || !category) {
       return NextResponse.json(
-        { error: "title, content, and category are required" },
+        { error: "title, content, category and code are required" },
         { status: 400 }
       );
     }
@@ -41,11 +41,12 @@ export async function POST(req: Request) {
     console.log("content:", content);
     console.log("category:", category);
     console.log("authorId:", authorId);
+    console.log("code:", code);
 
     // 4. INSERT 쿼리 실행
     const result = await sql`
-      INSERT INTO "Post" (id, title, content, category, "authorId")
-      VALUES (${id}, ${title}, ${content}, ${category}, ${authorId})
+      INSERT INTO "Post" (id, title, content, category, "authorId", code)
+      VALUES (${id}, ${title}, ${content}, ${category}, ${authorId}, ${code})
       RETURNING *;
     `;
 
