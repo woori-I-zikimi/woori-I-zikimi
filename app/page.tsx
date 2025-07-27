@@ -9,7 +9,7 @@ export default function Home() {
   const [posts, setPosts] = useState<any[]>([]);
   useEffect(() => {
         async function fetchPosts() {
-            const res = await fetch("/api/auth/posts");
+            const res = await fetch("/api/posts");
             const data = await res.json();
             if (data.success) {
                 setPosts(data.posts);
