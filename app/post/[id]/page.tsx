@@ -26,7 +26,8 @@ export default async function Post({ params }: { params: { id: string } }) {
       </span>
       <div className="font-mono text-lg leading-relaxed">{post.content}</div>
       {/* 코드 블럭 */}
-      {post.code && (
+      {/* 코드 길이가 2 이상이면, 코드 블럭 보여주기 */}
+      {post.code.length > 1 && (
         <div className="my-6">
           {/* <h3 className="font-pixel text-lg mb-3">Code Example</h3> */}
           <CodeBlock code={post.code} />
