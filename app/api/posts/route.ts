@@ -2,10 +2,24 @@
 import { sql } from "@vercel/postgres";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(req: Request) {
+    const { searchParams } = new URL(req.url);
+    const category = searchParams.get("category");
+
     try {
-        // DB에서 posts 조회 (createdAt 기준 최신순)
-        const result = await sql`SELECT * FROM "Post" ORDER BY "createdAt" DESC;`;
+        let result; 
+
+        if (category) {
+            result = await sql`
+                SELECT * FROM "Post" 
+                WHERE LOWER("category") = ${category.toLowerCase()} 
+                ORDER BY "createdAt" DESC;
+            `;
+        } else {
+            result = await sql`
+            SELECT * FROM "Post"
+            ORDER BY "createdAt" DESC;`;
+        }
 
         return NextResponse.json(
             {

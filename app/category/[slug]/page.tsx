@@ -1,26 +1,28 @@
-import Link from "next/link"
-import { posts } from "../../data/posts"
-import { notFound } from "next/navigation"
-import ScrollingSidebar from "../../components/ScrollingSidebar"
-import SearchAndNewPost from "../../components/SearchAndNewPost"
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import ScrollingSidebar from "@/app/components/ScrollingSidebar";
+import SearchAndNewPost from "@/app/components/SearchAndNewPost";
 
-export default function CategoryPage({ params }: { params: { slug: string } }) {
-  const category = params.slug.charAt(0).toUpperCase() + params.slug.slice(1)
-  const categoryPosts = posts.filter((post) => post.category.toLowerCase() === params.slug)
+export default async function CategoryPage({ params }: { params: { slug: string } }) {
+  const category = params.slug;
 
-  if (categoryPosts.length === 0) {
-    notFound()
+  const res = await fetch(`http://localhost:3000/api/posts?category=${category}`, {
+    cache: "no-store",
+  });
+
+  const data = await res.json();
+
+  if (!data.success || data.posts.length === 0) {
+    notFound();
   }
 
   return (
     <div className="pr-16">
-      {" "}
-      {/* Reduced right padding */}
       <ScrollingSidebar />
-      <h2 className="text-2xl font-pixel mb-6">{category} Posts</h2>
+      <h2 className="text-2xl font-pixel mb-6">{category.toUpperCase()} Posts</h2>
       <SearchAndNewPost />
       <div className="grid gap-6">
-        {categoryPosts.map((post) => (
+        {data.posts.map((post: any) => (
           <Link
             key={post.id}
             href={`/post/${post.id}`}
@@ -49,5 +51,5 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
         </Link>
       </div>
     </div>
-  )
+  );
 }
