@@ -1,8 +1,8 @@
-import { notFound } from "next/navigation"
-import CommentSection from "../../components/CommentSection"
-import SocialShare from "../../components/SocialShare"
+import { notFound } from "next/navigation";
+import CommentSection from "../../components/CommentSection";
+import SocialShare from "../../components/SocialShare";
 import { headers } from "next/headers";
-
+import CodeBlock from "@/app/components/CodeBlock";
 
 export default async function Post({ params }: { params: { id: string } }) {
   const host = (await headers()).get("host");
@@ -18,7 +18,6 @@ export default async function Post({ params }: { params: { id: string } }) {
 
   const post = data.post;
 
-
   return (
     <article className="prose prose-invert prose-green max-w-none">
       <h1 className="font-pixel">{post.title}</h1>
@@ -26,8 +25,15 @@ export default async function Post({ params }: { params: { id: string } }) {
         {post.category}
       </span>
       <div className="font-mono text-lg leading-relaxed">{post.content}</div>
+      {/* 코드 블럭 */}
+      {post.code && (
+        <div className="my-6">
+          {/* <h3 className="font-pixel text-lg mb-3">Code Example</h3> */}
+          <CodeBlock code={post.code} />
+        </div>
+      )}
       <SocialShare url={`${baseUrl}/post/${post.id}`} title={post.title} />
       <CommentSection />
     </article>
-  )
+  );
 }
