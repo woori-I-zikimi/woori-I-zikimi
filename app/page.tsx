@@ -45,7 +45,7 @@ export default function Home() {
               </div>
               <div className="flex gap-4 text-xs font-mono text-gray-400">
                 <span>💬 {8}</span>
-                <span>❤️ {2}</span>
+                <span>❤️ {Number(post.likeCount ?? 0)}</span>
               </div>
             </div>
           </Link>

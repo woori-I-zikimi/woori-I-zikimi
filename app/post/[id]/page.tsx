@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import CommentSection from "../../components/CommentSection"
 import SocialShare from "../../components/SocialShare"
 import { headers } from "next/headers";
+import PostLikeButton from "@/app/components/PostLikeButton";
 
 
 export default async function Post({ params }: { params: { id: string } }) {
@@ -11,6 +12,7 @@ export default async function Post({ params }: { params: { id: string } }) {
 
   const res = await fetch(`${baseUrl}/api/posts/${params.id}`, {
     cache: "no-store", // SSR로 최신 데이터 가져오기
+    credentials: "include" // 쿠키 포함
   });
   const data = await res.json();
 
@@ -26,6 +28,16 @@ export default async function Post({ params }: { params: { id: string } }) {
         {post.category}
       </span>
       <div className="font-mono text-lg leading-relaxed">{post.content}</div>
+
+      {/* 좋아요 버튼 추가 */}
+      <div className="flex justify-center mb-6">
+        <PostLikeButton
+          postId={post.id}
+          initialLiked={post.likedByCurrentUser}
+          initialCount={post.likeCount}
+        />
+      </div>
+
       <SocialShare url={`${baseUrl}/post/${post.id}`} title={post.title} />
       <CommentSection />
     </article>

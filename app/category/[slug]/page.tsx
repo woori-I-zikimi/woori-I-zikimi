@@ -7,7 +7,6 @@ import SearchAndNewPost from "@/app/components/SearchAndNewPost";
 export default async function CategoryPage({ params }: { params: { slug: string } }) {
   const category = params.slug;
 
-  // ✅ 너가 요청한 방식 그대로 적용
   const host = (await headers()).get("host");
   const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
   const baseUrl = `${protocol}://${host}`;
@@ -45,7 +44,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
               </div>
               <div className="flex gap-4 text-xs font-mono text-gray-400">
                 <span>💬 {Math.floor(Math.random() * 20) + 5}</span>
-                <span>❤️ {Math.floor(Math.random() * 50) + 10}</span>
+                <span>❤️ {Number(post.likeCount ?? 0)}</span>
               </div>
             </div>
           </Link>
