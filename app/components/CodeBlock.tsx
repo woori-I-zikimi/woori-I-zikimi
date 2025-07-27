@@ -19,7 +19,7 @@ const CodeBlock = ({ code, language }: CodeBlockProps) => {
   useEffect(() => {
     const result = language
       ? hljs.highlight(code, { language, ignoreIllegals: true })
-      : hljs.highlightAuto(code); // highlightAuto: 문자열 code의 내용을 보고 언어 추측
+      : hljs.highlightAuto(code); // highlightAuto: 문자열 code의 내용을 보고 언어 추측, 짧으면 감지 잘 안됨
 
     const sanitized = DOMPurify.sanitize(result.value); // XSS 방지
     setHighlightedCode(sanitized);
