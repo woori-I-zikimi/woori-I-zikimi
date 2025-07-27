@@ -18,6 +18,11 @@ export default async function Post({ params }: { params: { id: string } }) {
 
   const post = data.post;
 
+
+
+
+
+
   return (
     <article className="prose prose-invert prose-green max-w-none">
       <h1 className="font-pixel">{post.title}</h1>
@@ -34,7 +39,7 @@ export default async function Post({ params }: { params: { id: string } }) {
         </div>
       )}
       <SocialShare url={`${baseUrl}/post/${post.id}`} title={post.title} />
-      <CommentSection />
+      <CommentSection postId={params.id}/>
     </article>
   );
 }
