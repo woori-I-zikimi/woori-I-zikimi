@@ -1,13 +1,25 @@
 "use client"
 
 import Link from "next/link"
-import { posts } from "./data/posts"
 import ScrollingSidebar from "./components/ScrollingSidebar"
 import SearchAndNewPost from "./components/SearchAndNewPost"
+import { useEffect, useState } from "react";
 
 export default function Home() {
-  // Sort posts by ID descending to show latest first
-  const latestPosts = [...posts].sort((a, b) => b.id - a.id)
+  const [posts, setPosts] = useState<any[]>([]);
+  useEffect(() => {
+        async function fetchPosts() {
+            const res = await fetch("/api/auth/posts");
+            const data = await res.json();
+            if (data.success) {
+                setPosts(data.posts);
+                
+            }
+        }
+        fetchPosts();
+    }, []);
+
+
 
   return (
     <div className="pr-16">
@@ -16,7 +28,7 @@ export default function Home() {
       <ScrollingSidebar />
       <SearchAndNewPost />
       <div className="grid gap-6">
-        {latestPosts.map((post) => (
+        {posts.map((post) => (
           <Link
             key={post.id}
             href={`/post/${post.id}`}
