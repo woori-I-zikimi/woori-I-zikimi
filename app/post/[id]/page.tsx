@@ -1,11 +1,15 @@
 import { notFound } from "next/navigation"
 import CommentSection from "../../components/CommentSection"
 import SocialShare from "../../components/SocialShare"
+import { headers } from "next/headers";
 
 
 export default async function Post({ params }: { params: { id: string } }) {
+  const host = (await headers()).get("host");
+  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+  const baseUrl = `${protocol}://${host}`;
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/posts/${params.id}`, {
+  const res = await fetch(`${baseUrl}/api/posts/${params.id}`, {
     cache: "no-store", // SSR로 최신 데이터 가져오기
   });
   const data = await res.json();
