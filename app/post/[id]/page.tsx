@@ -2,12 +2,9 @@ import { notFound } from "next/navigation";
 import CommentSection from "../../components/CommentSection";
 import SocialShare from "../../components/SocialShare";
 import { headers } from "next/headers";
-<<<<<<< HEAD
 import PostLikeButton from "@/app/components/PostLikeButton";
 
-=======
 import CodeBlock from "@/app/components/CodeBlock";
->>>>>>> f4d4ef5ece5074bad12e66370099137df3a8c2f6
 
 export default async function Post({ params }: { params: { id: string } }) {
   const host = (await headers()).get("host");
@@ -36,7 +33,6 @@ export default async function Post({ params }: { params: { id: string } }) {
         {post.category}
       </span>
       <div className="font-mono text-lg leading-relaxed">{post.content}</div>
-<<<<<<< HEAD
 
       {/* 좋아요 버튼 추가 */}
       <div className="flex justify-center mb-6">
@@ -47,7 +43,6 @@ export default async function Post({ params }: { params: { id: string } }) {
         />
       </div>
 
-=======
       {/* 코드 블럭 */}
       {/* 코드 길이가 2 이상이면, 코드 블럭 보여주기 */}
       {post.code.length > 1 && (
@@ -56,7 +51,6 @@ export default async function Post({ params }: { params: { id: string } }) {
           <CodeBlock code={post.code} />
         </div>
       )}
->>>>>>> f4d4ef5ece5074bad12e66370099137df3a8c2f6
       <SocialShare url={`${baseUrl}/post/${post.id}`} title={post.title} />
       <CommentSection postId={params.id}/>
     </article>
