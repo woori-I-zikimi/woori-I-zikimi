@@ -23,7 +23,6 @@ export default function CreatePost() {
     title: "",
     content: "",
     category: "", // Changed from tags array to single category string
-    code: "",
   });
   // const [title, setTitle] = useState("");
   // const [content, setContent] = useState("");
@@ -55,10 +54,33 @@ export default function CreatePost() {
   //   alert("Draft saved!");
   // };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // 클라이언트(브라우저)에서 서버로 데이터를 전송
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Post data:", formData);
-    router.push("/");
+
+    console.log("formData 전송 전:", formData);
+
+    const response = await fetch("/api/post/write", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        title: formData.title,
+        content: formData.content,
+        category: formData.category,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      router.push("/");
+    } else {
+      console.error("등록 실패:", data);
+      alert(`등록 실패: ${data.error || "Unknown error"}`);
+    }
   };
 
   return (
@@ -69,7 +91,7 @@ export default function CreatePost() {
 
       {/* 질문 작성 프레임 */}
       <div className="bg-gray-800 rounded-lg pixelated-border p-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form className="space-y-6">
           {/* 제목 섹션 */}
           <div>
             <h3 className="font-pixel text-lg mb-3 text-green-400">
@@ -162,7 +184,10 @@ export default function CreatePost() {
                 placeholder="질문 내용을 작성해주세요..."
                 value={formData.content}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, content: e.target.value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    content: e.target.value,
+                  }))
                 }
                 className="min-h-[200px] font-mono text-lg bg-gray-700 border-gray-600 focus:border-green-400 resize-none"
                 required
@@ -193,7 +218,7 @@ export default function CreatePost() {
 function pixelatedWisdom() {
   return 'Hello, World!';
 }"
-                value={formData.code}
+                value={formData.content}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, code: e.target.value }))
                 }
@@ -223,6 +248,7 @@ function pixelatedWisdom() {
               Cancel
             </Button>
             <Button
+              onClick={handleSubmit}
               type="submit"
               className="font-pixel bg-green-600 text-black hover:bg-green-500"
               disabled={!formData.title || !formData.content}
