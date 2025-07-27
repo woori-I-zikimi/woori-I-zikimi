@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import Link from "next/link";
 import ScrollingSidebar from "@/app/components/ScrollingSidebar";
 import SearchAndNewPost from "@/app/components/SearchAndNewPost";
@@ -6,7 +7,12 @@ import SearchAndNewPost from "@/app/components/SearchAndNewPost";
 export default async function CategoryPage({ params }: { params: { slug: string } }) {
   const category = params.slug;
 
-  const res = await fetch(`http://localhost:3000/api/posts?category=${category}`, {
+  // ✅ 너가 요청한 방식 그대로 적용
+  const host = (await headers()).get("host");
+  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+  const baseUrl = `${protocol}://${host}`;
+
+  const res = await fetch(`${baseUrl}/api/posts?category=${category}`, {
     cache: "no-store",
   });
 
