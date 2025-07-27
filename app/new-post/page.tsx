@@ -23,6 +23,7 @@ export default function CreatePost() {
     title: "",
     content: "",
     category: "", // Changed from tags array to single category string
+    code: "",
   });
   // const [title, setTitle] = useState("");
   // const [content, setContent] = useState("");
@@ -70,6 +71,7 @@ export default function CreatePost() {
         title: formData.title,
         content: formData.content,
         category: formData.category,
+        code: formData.code,
       }),
     });
 
@@ -218,7 +220,7 @@ export default function CreatePost() {
 function pixelatedWisdom() {
   return 'Hello, World!';
 }"
-                value={formData.content}
+                value={formData.code}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, code: e.target.value }))
                 }
