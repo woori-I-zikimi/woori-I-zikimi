@@ -1,9 +1,9 @@
-import WooriQAPlatform from "../woori-qa-platform"
+import WooriQAPlatform from "../components/woori-qa-platform";
 
 export default function Page() {
   return (
     <div>
       <WooriQAPlatform />
     </div>
-  )
+  );
 }
