@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,80 +30,57 @@ interface Comment {
     isExpanded?: boolean;
 }
 
-export default function Comment({ params }: { params: { id: string } }) {
+export default function Comment({ postId }: { postId: string }) {
     const [isLiked, setIsLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(12);
     const [newComment, setNewComment] = useState("");
     const [replyTo, setReplyTo] = useState<number | null>(null);
     const [replyContent, setReplyContent] = useState("");
-    const [comments, setComments] = useState<Comment[]>([
-        {
-            id: 1,
-            content:
-                "저도 비슷한 문제를 겪었는데, 팀 내에서 코드 리뷰 프로세스를 도입하니까 많이 개선되었어요.",
-            author: "익명1",
-            isAuthor: false,
-            timeAgo: "1시간 전",
-            likes: 3,
-            replies: [
-                {
-                    id: 11,
-                    content: "코드 리뷰 도구는 어떤 걸 사용하셨나요?",
-                    author: "익명2",
-                    isAuthor: false,
-                    timeAgo: "30분 전",
-                    likes: 1,
-                    replies: [],
-                },
-                {
-                    id: 12,
-                    content:
-                        "GitHub의 Pull Request 기능을 주로 사용했습니다. 팀원들과 소통하기에 좋더라고요.",
-                    author: "작성자",
-                    isAuthor: true,
-                    timeAgo: "25분 전",
-                    likes: 2,
-                    replies: [],
-                },
-            ],
-            isExpanded: true,
-        },
-        {
-            id: 2,
-            content:
-                "프로젝트 관리 도구도 중요한 것 같아요. Jira나 Notion 같은 걸 활용해보시는 건 어떨까요?",
-            author: "익명3",
-            isAuthor: false,
-            timeAgo: "45분 전",
-            likes: 5,
-            replies: [],
-            isExpanded: false,
-        },
-    ]);
+    // const [comments, setComments] = useState<Comment[]>([
+    //     {
+    //         id: 1,
+    //         content:
+    //             "저도 비슷한 문제를 겪었는데, 팀 내에서 코드 리뷰 프로세스를 도입하니까 많이 개선되었어요22.",
+    //         author: "익명1",
+    //         isAuthor: false,
+    //         timeAgo: "1시간 전",
+    //         likes: 3,
+    //         replies: [
+    //             {
+    //                 id: 11,
+    //                 content: "코드 리뷰 도구는 어떤 걸 사용하셨나요?",
+    //                 author: "익명2",
+    //                 isAuthor: false,
+    //                 timeAgo: "30분 전",
+    //                 likes: 1,
+    //                 replies: [],
+    //             },
+    //             {
+    //                 id: 12,
+    //                 content:
+    //                     "GitHub의 Pull Request 기능을 주로 사용했습니다. 팀원들과 소통하기에 좋더라고요.",
+    //                 author: "작성자",
+    //                 isAuthor: true,
+    //                 timeAgo: "25분 전",
+    //                 likes: 2,
+    //                 replies: [],
+    //             },
+    //         ],
+    //         isExpanded: true,
+    //     }
+    // ]);
+    const [comments, setComments] = useState<Comment[]>([])
 
 
-    const router = useRouter();
-
-
-    // 로그아웃 핸들
-    const handleLogout = async () => {
-        // console.log("로그아웃 클릭됨");
-        await fetch("/api/auth/logout", {
-            method: "POST",
-            credentials: "include",
-            cache: "no-store",
-        });
-
-        router.push("/login");
-        router.refresh();
-    };
-
-    const handleLike = () => {
-        if (!isLiked) {
-            setIsLiked(true);
-            setLikeCount((prev) => prev + 1);
+    // 댓글 불러오기
+    useEffect(() => {
+        async function fetchComments() {
+            const res = await fetch(`/api/comments?postId=${postId}`);
+            const data = await res.json();
+            if (data.success) setComments(data.comments);
         }
-    };
+        fetchComments();
+    }, [postId]);
 
     const handleCommentSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -255,7 +232,7 @@ export default function Comment({ params }: { params: { id: string } }) {
             )}
 
             {/* Replies */}
-            {comment.replies.length > 0 && (
+            {/* {comment.replies.length > 0 && (
                 <div className="ml-4">
                     <Button
                         variant="ghost"
@@ -284,7 +261,7 @@ export default function Comment({ params }: { params: { id: string } }) {
                             />
                         ))}
                 </div>
-            )}
+            )} */}
         </div>
     );
 

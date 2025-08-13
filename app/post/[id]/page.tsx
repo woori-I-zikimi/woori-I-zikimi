@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Comment from "@/components/comment";
+import Comment from "@/components/Comment";
 import { id } from "date-fns/locale";
 
 interface Comment {
@@ -111,9 +111,6 @@ function teamCollaboration() {
             setLikeCount((prev) => prev + 1);
         }
     };
-
-
-
 
 
     const renderMarkdown = (text: string) => {
@@ -261,7 +258,7 @@ function teamCollaboration() {
                 </Card>
 
                 {/* Comments Section */}
-                <Comment params={{ id:"1" }} />
+                <Comment postId={ "1" } />
             </div>
 
             {/* Password Change Modal */}
