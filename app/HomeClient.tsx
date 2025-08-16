@@ -26,9 +26,10 @@ import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PasswordChangeModal from "../components/password-change-modal";
+import { UUID } from "crypto";
 
 type PostItem = {
-  id: string;
+  id: UUID;
   category: Category;
   title: string;
   content: string;
