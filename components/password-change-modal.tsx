@@ -35,38 +35,68 @@ export function PasswordChangeModal({
         setIsLoading(true);
         setErrors({});
 
-        // Validate current password (simulate checking against DB)
-        if (formData.currentPassword !== "password") {
-            setErrors({ currentPassword: "현재 비밀번호가 올바르지 않습니다" });
-            setIsLoading(false);
-            return;
-        }
-
-        // Validate new passwords match
+        // 클라이언트 측 기본 검증
         if (formData.newPassword !== formData.confirmPassword) {
             setErrors({ confirmPassword: "새 비밀번호가 일치하지 않습니다" });
             setIsLoading(false);
             return;
         }
-
-        // Validate new password length
         if (formData.newPassword.length < 6) {
             setErrors({ newPassword: "비밀번호는 최소 6자 이상이어야 합니다" });
             setIsLoading(false);
             return;
         }
 
-        // Simulate API call to update password
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        try {
+            const res = await fetch("/api/auth/changePw", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include", // same-origin이면 생략 가능
+                cache: "no-store",
+                body: JSON.stringify({
+                    currentPassword: formData.currentPassword,
+                    newPassword: formData.newPassword,
+                }),
+            });
 
-        alert("비밀번호가 성공적으로 변경되었습니다!");
-        setIsLoading(false);
-        onClose();
-        setFormData({
-            currentPassword: "",
-            newPassword: "",
-            confirmPassword: "",
-        });
+            const data = await res.json();
+
+            if (res.ok) {
+                // 성공 처리
+                alert(data.message ?? "비밀번호가 성공적으로 변경되었습니다!");
+                onClose();
+                setFormData({
+                    currentPassword: "",
+                    newPassword: "",
+                    confirmPassword: "",
+                });
+            } else {
+                // 상태코드에 따라 폼 에러 표시
+                if (res.status === 401) {
+                    setErrors({
+                        currentPassword:
+                            data.message ?? "현재 비밀번호가 올바르지 않습니다",
+                    });
+                } else if (res.status === 404) {
+                    setErrors({ currentPassword: "유저를 찾을 수 없습니다." });
+                } else if (res.status === 400) {
+                    // 서버 측 검증 실패 메시지
+                    const msg = data.message ?? "요청을 확인해주세요.";
+                    // 어디에 띄울지 애매하면 newPassword 쪽으로
+                    setErrors({ newPassword: msg });
+                } else {
+                    alert(
+                        data.message ??
+                            "변경에 실패했습니다. 잠시 후 다시 시도해주세요."
+                    );
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            alert("네트워크 오류가 발생했습니다. 다시 시도해주세요.");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleChange = (field: string, value: string) => {
