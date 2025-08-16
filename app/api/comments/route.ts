@@ -39,7 +39,7 @@ export async function GET(req: Request) {
                 c.id, c.authorId, c.postId, c.content, c.createdat, COUNT(cl.id) AS likes
               FROM comments c
               LEFT JOIN commentlikes cl ON c.id = cl.commentid
-              WHERE c.id = ${postId}
+              WHERE c.postId = ${postId}
               GROUP BY c.id, c.authorid, c.postid, c.content, c.createdat
               ORDER BY c.createdat DESC;`;
 

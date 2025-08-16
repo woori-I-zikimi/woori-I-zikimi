@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { useRouter } from "next/navigation";
+import { UUID } from "crypto";
 
 interface Comment {
     id: number;
@@ -30,7 +31,7 @@ interface Comment {
     isExpanded?: boolean;
 }
 
-export default function Comment({ postId }: { postId: string }) {
+export default function Comment({ postId }: { postId: UUID }) {
     const [isLiked, setIsLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(12);
     const [newComment, setNewComment] = useState("");
@@ -76,6 +77,7 @@ export default function Comment({ postId }: { postId: string }) {
     useEffect(() => {
         async function fetchComments() {
             const res = await fetch(`/api/comments?postId=${postId}`);
+            console.log('댓글 조회 응답', res);
             const data = await res.json();
             if (data.success) setComments(data.comments);
         }
@@ -156,7 +158,7 @@ export default function Comment({ postId }: { postId: string }) {
                     <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
                             <span className="font-medium text-gray-900">
-                                {comment.author}
+                                익명
                             </span>
                             {comment.isAuthor && (
                                 <Badge className="bg-[#1976D2] text-white text-xs">
