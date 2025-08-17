@@ -2,536 +2,327 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useEffect, useState, use } from "react"; // [ADD] React.use()로 params 언랩
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PasswordChangeModal } from "@/components/password-change-modal";
 import {
-    Home,
-    User,
-    Plus,
-    ThumbsUp,
-    MessageCircle,
-    Clock,
-    Reply,
-    ChevronDown,
-    ChevronUp,
+  Home,
+  User,
+  Plus,
+  ThumbsUp,
+  MessageCircle,
+  Clock,
+  Reply,
+  ChevronDown,
+  ChevronUp,
+  Pencil, // 수정 버튼 아이콘
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Comment from "@/components/Comment";
+import { UUID } from "crypto";
 
-interface Comment {
-    id: number;
-    content: string;
-    author: string;
-    isAuthor: boolean;
-    timeAgo: string;
-    likes: number;
-    replies: Comment[];
-    isExpanded?: boolean;
+// API 응답 타입
+type PostDetail = {
+  id: UUID;
+  authorId: string;
+  title: string;
+  content: string;
+  code: string;
+  category: string;
+  isAnswered: boolean;
+  createdAt: string;
+  updatedAt: string;
+  likeCount: number;
+  commentCount: number;
+};
+
+type Flags = {
+  isMine: boolean;
+  likedByMe: boolean;
+};
+
+// [MOD] 이름 충돌 방지: 컴포넌트(Comment)와 겹치지 않도록 인터페이스 이름 변경
+interface CommentItem {
+  id: number;
+  content: string;
+  author: string;
+  isAuthor: boolean;
+  timeAgo: string;
+  likes: number;
+  replies: CommentItem[];
+  isExpanded?: boolean;
 }
 
-export default function PostDetailPage({ params }: { params: { id: string } }) {
-    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-    const [isLiked, setIsLiked] = useState(false);
-    const [likeCount, setLikeCount] = useState(12);
-    const [newComment, setNewComment] = useState("");
-    const [replyTo, setReplyTo] = useState<number | null>(null);
-    const [replyContent, setReplyContent] = useState("");
-    const [comments, setComments] = useState<Comment[]>([
-        {
-            id: 1,
-            content:
-                "저도 비슷한 문제를 겪었는데, 팀 내에서 코드 리뷰 프로세스를 도입하니까 많이 개선되었어요.",
-            author: "익명1",
-            isAuthor: false,
-            timeAgo: "1시간 전",
-            likes: 3,
-            replies: [
-                {
-                    id: 11,
-                    content: "코드 리뷰 도구는 어떤 걸 사용하셨나요?",
-                    author: "익명2",
-                    isAuthor: false,
-                    timeAgo: "30분 전",
-                    likes: 1,
-                    replies: [],
-                },
-                {
-                    id: 12,
-                    content:
-                        "GitHub의 Pull Request 기능을 주로 사용했습니다. 팀원들과 소통하기에 좋더라고요.",
-                    author: "작성자",
-                    isAuthor: true,
-                    timeAgo: "25분 전",
-                    likes: 2,
-                    replies: [],
-                },
-            ],
-            isExpanded: true,
-        },
-        {
-            id: 2,
-            content:
-                "프로젝트 관리 도구도 중요한 것 같아요. Jira나 Notion 같은 걸 활용해보시는 건 어떨까요?",
-            author: "익명3",
-            isAuthor: false,
-            timeAgo: "45분 전",
-            likes: 5,
-            replies: [],
-            isExpanded: false,
-        },
-    ]);
+// [MOD] params 타입을 Promise로 받고 React.use()로 언랩
+export default function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params); // [MOD] Next.js 15: params Promise 언랩
 
-    // Mock post data
-    const post = {
-        id: params.id,
-        title: "프로젝트 진행 상황",
-        content: `현재 진행 중인 프로젝트에서 팀원들과의 **협업 방식**에 대해 궁금한 점이 있습니다.
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);          // [MOD] 서버 응답으로 초기화
+  const [likeCount, setLikeCount] = useState(0);          // [MOD] 서버 응답으로 초기화
+  const [newComment, setNewComment] = useState("");
+  const [replyTo, setReplyTo] = useState<number | null>(null);
+  const [replyContent, setReplyContent] = useState("");
 
-특히 다음과 같은 부분들이 어려워요:
+  // [ADD] 서버에서 가져온 게시글/플래그 상태
+  const [post, setPost] = useState<PostDetail | null>(null);
+  const [flags, setFlags] = useState<Flags>({ isMine: false, likedByMe: false });
+  const [loading, setLoading] = useState(true);
 
-1. 코드 스타일 통일
-2. 작업 분담 및 일정 관리
-3. 의사소통 방식
+  const router = useRouter();
 
-\`\`\`javascript
-// 예시 코드
-function teamCollaboration() {
-  console.log("How to improve team collaboration?");
-}
-\`\`\`
+  // [MOD] 상세 데이터 로드 (API 연동) - params.id 대신 언랩된 id 사용
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/posts/${id}`, { cache: "no-store" });
+        const data = await res.json();
+        if (!data?.success) throw new Error(data?.message || "LOAD_FAILED");
 
-경험이 있으신 분들의 조언을 구합니다!`,
-        category: { name: "프로젝트", color: "bg-blue-100 text-blue-800" },
-        author: "작성자",
-        timeAgo: "2시간 전",
-    };
-    const router = useRouter();
+        setPost(data.post as PostDetail);
+        setFlags(data.flags as Flags);
+        setIsLiked(Boolean(data.flags?.likedByMe));                 // 좋아요 상태 유지
+        setLikeCount(Number(data.post?.likeCount ?? 0));            // 좋아요 수 반영
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [id]); // [MOD] 의존성도 id로
 
-    // 홈 핸들
-    const handleHomeClick = () => {
-        router.push("/");
-        router.refresh();
-    };
+  // 홈 핸들
+  const handleHomeClick = () => {
+    router.push("/");
+    router.refresh();
+  };
 
-    // 새 글 핸들
-    const handleNewPost = () => {
-        router.push("/new-post");
-    };
+  // 새 글 핸들
+  const handleNewPost = () => {
+    router.push("/new-post");
+  };
 
-    // 내 글 보기 핸들
-    const handleMyPost = () => {
-        router.push("/my-posts");
-    };
+  // 내 글 보기 핸들
+  const handleMyPost = () => {
+    router.push("/my-posts");
+  };
 
-    // 로그아웃 핸들
-    const handleLogout = async () => {
-        // console.log("로그아웃 클릭됨");
-        await fetch("/api/auth/logout", {
-            method: "POST",
-            credentials: "include",
-            cache: "no-store",
-        });
+  // 로그아웃 핸들
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+    });
 
-        router.push("/login");
-        router.refresh();
-    };
+    router.push("/login");
+    router.refresh();
+  };
 
-    const handleLike = () => {
-        if (!isLiked) {
-            setIsLiked(true);
-            setLikeCount((prev) => prev + 1);
-        }
-    };
+  // [MOD] 좋아요: 토글 안 함, 한 번만 누를 수 있게
+  const handleLike = async () => {
+    if (!post || isLiked) return; // 이미 눌렀으면 동작 안 함
+    try {
+      // TODO: 실제 구현된 엔드포인트에 맞게 경로/메서드 조정
+      const res = await fetch(`/api/posts/${post.id}/like`, { method: "PATCH" });
+      const data = await res.json();
+      if (data?.success) {
+        setIsLiked(true);                 // 항상 true만
+        setLikeCount((prev) => prev + 1); // 항상 +1만
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
-    const handleCommentSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newComment.trim()) return;
+  // 기존 마크다운 렌더 함수 유지
+  const renderMarkdown = (text: string) => {
+    return text
+      .replace(
+        /```(\w+)?\n([\s\S]*?)```/g,
+        '<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto my-4"><code>$2</code></pre>'
+      )
+      .replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-2 py-1 rounded">$1</code>')
+      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.*?)\*/g, "<em>$1</em>")
+      .replace(/^\d+\.\s/gm, "<li>")
+      .replace(/\n/g, "<br>");
+  };
 
-        const comment: Comment = {
-            id: Date.now(),
-            content: newComment,
-            author: `익명${comments.length + 1}`,
-            isAuthor: false,
-            timeAgo: "방금 전",
-            likes: 0,
-            replies: [],
-            isExpanded: false,
-        };
+  const formatDate = (iso?: string) => {
+  if (!iso) return "";
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",   // 타임존 고정
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  }).format(new Date(iso));
+};
 
-        setComments((prev) => [...prev, comment]);
-        setNewComment("");
-    };
+  if (loading) {
+    return <div className="p-6">불러오는 중…</div>;
+  }
+  if (!post) {
+    return <div className="p-6">게시글을 찾을 수 없습니다.</div>;
+  }
 
-    const handleReplySubmit = (commentId: number) => {
-        if (!replyContent.trim()) return;
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-[#0074c9] text-white sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            {/* Left - Home Button (icon only) */}
+            <Button
+              variant="ghost"
+              className="text-white hover:text-blue-100 hover:bg-[#005fa3]"
+              onClick={() => handleHomeClick()}
+            >
+              <Home className="w-4 h-4" />
+            </Button>
 
-        const reply: Comment = {
-            id: Date.now(),
-            content: replyContent,
-            author: `익명${Math.floor(Math.random() * 100)}`,
-            isAuthor: false,
-            timeAgo: "방금 전",
-            likes: 0,
-            replies: [],
-        };
-
-        setComments((prev) =>
-            prev.map((comment) =>
-                comment.id === commentId
-                    ? {
-                          ...comment,
-                          replies: [...comment.replies, reply],
-                          isExpanded: true,
-                      }
-                    : comment
-            )
-        );
-        setReplyContent("");
-        setReplyTo(null);
-    };
-
-    const toggleReplies = (commentId: number) => {
-        setComments((prev) =>
-            prev.map((comment) =>
-                comment.id === commentId
-                    ? { ...comment, isExpanded: !comment.isExpanded }
-                    : comment
-            )
-        );
-    };
-
-    const renderMarkdown = (text: string) => {
-        return text
-            .replace(
-                /```(\w+)?\n([\s\S]*?)```/g,
-                '<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto my-4"><code>$2</code></pre>'
-            )
-            .replace(
-                /`([^`]+)`/g,
-                '<code class="bg-gray-100 px-2 py-1 rounded">$1</code>'
-            )
-            .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-            .replace(/\*(.*?)\*/g, "<em>$1</em>")
-            .replace(/^\d+\.\s/gm, "<li>")
-            .replace(/\n/g, "<br>");
-    };
-
-    const CommentComponent = ({
-        comment,
-        isReply = false,
-    }: {
-        comment: Comment;
-        isReply?: boolean;
-    }) => (
-        <div
-            className={`${
-                isReply ? "ml-8 border-l-2 border-gray-200 pl-4" : ""
-            }`}
-        >
-            <Card className="mb-3">
-                <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                            <span className="font-medium text-gray-900">
-                                {comment.author}
-                            </span>
-                            {comment.isAuthor && (
-                                <Badge className="bg-[#1976D2] text-white text-xs">
-                                    작성자
-                                </Badge>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
-                            <Clock className="w-3 h-3" />
-                            <span>{comment.timeAgo}</span>
-                        </div>
-                    </div>
-                    <p className="text-gray-700 mb-3">{comment.content}</p>
-                    <div className="flex items-center gap-4">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-gray-500 hover:text-[#1976D2]"
-                        >
-                            <ThumbsUp className="w-4 h-4 mr-1" />
-                            {comment.likes}
-                        </Button>
-                        {!isReply && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-gray-500 hover:text-[#1976D2]"
-                                onClick={() =>
-                                    setReplyTo(
-                                        replyTo === comment.id
-                                            ? null
-                                            : comment.id
-                                    )
-                                }
-                            >
-                                <Reply className="w-4 h-4 mr-1" />
-                                답글
-                            </Button>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Reply Form */}
-            {replyTo === comment.id && (
-                <div className="ml-8 mb-4">
-                    <div className="flex gap-2">
-                        <Textarea
-                            value={replyContent}
-                            onChange={(e) => setReplyContent(e.target.value)}
-                            placeholder="답글을 작성하세요..."
-                            className="flex-1"
-                            rows={2}
-                        />
-                        <div className="flex flex-col gap-2">
-                            <Button
-                                size="sm"
-                                className="bg-[#1976D2] hover:bg-blue-700"
-                                onClick={() => handleReplySubmit(comment.id)}
-                            >
-                                답글
-                            </Button>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setReplyTo(null)}
-                            >
-                                취소
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Replies */}
-            {comment.replies.length > 0 && (
-                <div className="ml-4">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-[#1976D2] mb-2"
-                        onClick={() => toggleReplies(comment.id)}
-                    >
-                        {comment.isExpanded ? (
-                            <>
-                                <ChevronUp className="w-4 h-4 mr-1" />
-                                답글 숨기기
-                            </>
-                        ) : (
-                            <>
-                                <ChevronDown className="w-4 h-4 mr-1" />
-                                답글 {comment.replies.length}개 보기
-                            </>
-                        )}
-                    </Button>
-                    {comment.isExpanded &&
-                        comment.replies.map((reply) => (
-                            <CommentComponent
-                                key={reply.id}
-                                comment={reply}
-                                isReply={true}
-                            />
-                        ))}
-                </div>
-            )}
-        </div>
-    );
-
-    return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <header className="bg-[#0074c9] text-white sticky top-0 z-50">
-                <div className="max-w-6xl mx-auto px-4 py-3">
-                    <div className="flex items-center justify-between">
-                        {/* Left - Home Button (icon only) */}
-                        <Button
-                            variant="ghost"
-                            className="text-white hover:text-blue-100 hover:bg-[#005fa3]"
-                            onClick={() => handleHomeClick()}
-                        >
-                            <Home className="w-4 h-4" />
-                        </Button>
-
-                        {/* Center - Logo */}
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                                <MessageCircle className="w-5 h-5 text-[#0074c9]" />
-                            </div>
-                            <h1 className="text-lg font-bold text-white">
-                                woori I zikimi
-                            </h1>
-                        </div>
-
-                        {/* Right - Write Button & Profile */}
-                        <div className="flex items-center gap-4">
-                            <Button
-                                className="bg-white text-[#0074c9] hover:bg-gray-50"
-                                onClick={() => handleNewPost()}
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Write
-                            </Button>
-
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-8 h-8 rounded-full p-0 text-white hover:text-blue-100 hover:bg-[#005fa3]"
-                                    >
-                                        <User className="w-4 h-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    align="end"
-                                    className="w-48"
-                                >
-                                    <DropdownMenuItem
-                                        onClick={() => handleMyPost()}
-                                    >
-                                        View My Posts
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        onClick={() =>
-                                            setIsPasswordModalOpen(true)
-                                        }
-                                    >
-                                        Change Password
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        className="text-red-600 focus:text-red-600"
-                                        onClick={() => handleLogout()}
-                                    >
-                                        Logout
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
-            {/* Main Content */}
-            <div className="max-w-4xl mx-auto px-6 py-8">
-                {/* Post Content */}
-                <Card className="mb-8">
-                    <CardContent className="p-8">
-                        <div className="mb-4">
-                            <Badge className={post.category.color}>
-                                {post.category.name}
-                            </Badge>
-                        </div>
-                        <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                            {post.title}
-                        </h1>
-                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-6">
-                            <span className="font-medium">{post.author}</span>
-                            <div className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
-                                <span>{post.timeAgo}</span>
-                            </div>
-                        </div>
-                        <div
-                            className="prose max-w-none mb-6"
-                            dangerouslySetInnerHTML={{
-                                __html: renderMarkdown(post.content),
-                            }}
-                        />
-                        <div className="flex items-center gap-4 pt-4 border-t">
-                            <Button
-                                variant={isLiked ? "default" : "outline"}
-                                size="sm"
-                                onClick={handleLike}
-                                disabled={isLiked}
-                                className={
-                                    isLiked
-                                        ? "bg-[#1976D2] hover:bg-blue-700"
-                                        : "hover:bg-gray-50"
-                                }
-                            >
-                                <ThumbsUp
-                                    className={`w-4 h-4 mr-1 ${
-                                        isLiked ? "fill-current" : ""
-                                    }`}
-                                />
-                                {likeCount}
-                            </Button>
-                            <div className="flex items-center gap-1 text-gray-500">
-                                <MessageCircle className="w-4 h-4" />
-                                <span>{comments.length} 댓글</span>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Comments Section */}
-                <div className="space-y-6">
-                    <h2 className="text-xl font-bold text-gray-900">
-                        댓글 {comments.length}개
-                    </h2>
-
-                    {/* Comment Form */}
-                    <Card>
-                        <CardContent className="p-4">
-                            <form onSubmit={handleCommentSubmit}>
-                                <Textarea
-                                    value={newComment}
-                                    onChange={(e) =>
-                                        setNewComment(e.target.value)
-                                    }
-                                    placeholder="댓글을 작성하세요..."
-                                    className="mb-3"
-                                    rows={3}
-                                />
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-500">
-                                        익명으로 댓글이 작성됩니다
-                                    </span>
-                                    <Button
-                                        type="submit"
-                                        className="bg-[#1976D2] hover:bg-blue-700"
-                                    >
-                                        댓글 작성
-                                    </Button>
-                                </div>
-                            </form>
-                        </CardContent>
-                    </Card>
-
-                    {/* Comments List */}
-                    <div className="space-y-4">
-                        {comments.map((comment) => (
-                            <CommentComponent
-                                key={comment.id}
-                                comment={comment}
-                            />
-                        ))}
-                    </div>
-                </div>
+            {/* Center - Logo */}
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-[#0074c9]" />
+              </div>
+              <h1 className="text-lg font-bold text-white">woori I zikimi</h1>
             </div>
 
-            {/* Password Change Modal */}
-            {isPasswordModalOpen && (
-                <PasswordChangeModal
-                    isOpen={isPasswordModalOpen}
-                    onClose={() => setIsPasswordModalOpen(false)}
-                />
-            )}
+            {/* Right - Write Button & Profile */}
+            <div className="flex items-center gap-4">
+              <Button
+                className="bg-white text-[#0074c9] hover:bg-gray-50"
+                onClick={() => handleNewPost()}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Write
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-8 h-8 rounded-full p-0 text-white hover:text-blue-100 hover:bg-[#005fa3]"
+                  >
+                    <User className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => handleMyPost()}>
+                    View My Posts
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsPasswordModalOpen(true)}>
+                    Change Password
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-red-600 focus:text-red-600"
+                    onClick={() => handleLogout()}
+                  >
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
         </div>
-    );
+      </header>
+
+      {/* Main Content */}
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        {/* Post Content */}
+        <Card className="mb-8">
+          <CardContent className="p-8">
+            <div className="mb-4">
+              {/* 카테고리는 문자열로 내려오므로 기본 배지로 표기 */}
+              <Badge variant="secondary">{post.category}</Badge>
+            </div>
+
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">{post.title}</h1>
+
+            <div className="flex items-center gap-4 text-sm text-gray-500 mb-6">
+              {/* 작성자 표기는 항상 '작성자'로 */}
+              <span className="font-medium">작성자</span>
+              <div className="flex items-center gap-1">
+                <Clock className="w-4 h-4" />
+                {/* createdAt만 사용 */}
+                <span>{formatDate(post.createdAt)}</span>
+              </div>
+            </div>
+
+            <div
+              className="prose max-w-none mb-6"
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(post.content) }}
+            />
+
+            {/* 첨부 코드가 있으면 표시 */}
+            {post.code && (
+              <pre className="overflow-auto rounded-md border p-4 text-sm mb-6">
+                {post.code}
+              </pre>
+            )}
+
+            {/* 수정하기 버튼과 좋아요/댓글 영역 */}
+            <div className="flex flex-row-reverse items-center justify-between pt-4 border-t">
+              {/* 내 글이면 수정 버튼 */}
+              {flags.isMine && (
+                <Link href={`/posts/${post.id}/edit`}>
+                  <Button variant="outline" size="sm" className="flex items-center">
+                    <Pencil className="w-4 h-4 mr-2" />
+                    수정하기
+                  </Button>
+                </Link>
+              )}
+
+              {/* 좋아요 & 댓글 */}
+              <div className="flex items-center gap-4">
+                <Button
+                  variant={isLiked ? "default" : "outline"}
+                  size="sm"
+                  onClick={handleLike}
+                  disabled={isLiked}
+                  className={isLiked ? "bg-[#1976D2] hover:bg-blue-700" : "hover:bg-gray-50"}
+                >
+                  <ThumbsUp className={`w-4 h-4 mr-1 ${isLiked ? "fill-current" : ""}`} />
+                  {likeCount}
+                </Button>
+
+                <div className="flex items-center gap-1 text-gray-500">
+                  <MessageCircle className="w-4 h-4" />
+                  <span>{post.commentCount} 댓글</span> {/* 댓글 개수 표시 */}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Comments Section */}
+        {/* postId를 동적으로 전달 */}
+        <Comment postId={post.id} />
+      </div>
+
+      {/* Password Change Modal */}
+      {isPasswordModalOpen && (
+        <PasswordChangeModal
+          isOpen={isPasswordModalOpen}
+          onClose={() => setIsPasswordModalOpen(false)}
+        />
+      )}
+    </div>
+  );
 }
