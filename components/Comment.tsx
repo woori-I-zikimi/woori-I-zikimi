@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { timeAgo } from "@/lib/utils";
 
 import {
 
@@ -18,19 +19,21 @@ import {
 } from "lucide-react";
 
 import { useRouter } from "next/navigation";
+import { randomUUID, UUID } from "crypto";
 
 interface Comment {
-    id: number;
+    id: UUID;
+    authorId: string;
+    postId: UUID;
+    // isAuthor: boolean;
     content: string;
-    author: string;
-    isAuthor: boolean;
-    timeAgo: string;
+    createat: Date;
     likes: number;
-    replies: Comment[];
-    isExpanded?: boolean;
+    // replies: Comment[];
+    // isExpanded?: boolean;
 }
 
-export default function Comment({ postId }: { postId: string }) {
+export default function Comment({ postId }: { postId: UUID }) {
     const [isLiked, setIsLiked] = useState(false);
     const [likeCount, setLikeCount] = useState(12);
     const [newComment, setNewComment] = useState("");
@@ -86,58 +89,67 @@ export default function Comment({ postId }: { postId: string }) {
         e.preventDefault();
         if (!newComment.trim()) return;
 
-        const comment: Comment = {
-            id: Date.now(),
-            content: newComment,
-            author: `익명${comments.length + 1}`,
-            isAuthor: false,
-            timeAgo: "방금 전",
-            likes: 0,
-            replies: [],
-            isExpanded: false,
-        };
+        async function fetchComments() {
+            const res = await fetch(`/api/comments?postId=${postId}`);
+            const data = await res.json();
+            if (data.success) setComments(data.comments);
 
-        setComments((prev) => [...prev, comment]);
-        setNewComment("");
+            const comment: Comment = {
+                id: randomUUID(),  // 수정 필요
+                content: newComment,
+                authorId: '050301',
+                postId: postId,
+                // isAuthor: false,
+                createat:new Date(),
+                likes: 0,
+                // replies: [],
+                // isExpanded: false,
+            };
+            setComments((prev) => [...prev, comment]);
+        }
+        fetchComments();
+
+
+        // setNewComment("");
     };
 
-    const handleReplySubmit = (commentId: number) => {
-        if (!replyContent.trim()) return;
+    // const handleReplySubmit = (commentId: UUID) => {
+    //     if (!replyContent.trim()) return;
 
-        const reply: Comment = {
-            id: Date.now(),
-            content: replyContent,
-            author: `익명${Math.floor(Math.random() * 100)}`,
-            isAuthor: false,
-            timeAgo: "방금 전",
-            likes: 0,
-            replies: [],
-        };
+    //     const reply: Comment = {
+    //         id: '',
+    //         content: replyContent,
+    //         author: `익명${Math.floor(Math.random() * 100)}`,
+    //         isAuthor: false,
+    //         likes: 0,
+    //         replies: [],
+    //         createat: new Date()
+    //     };
 
-        setComments((prev) =>
-            prev.map((comment) =>
-                comment.id === commentId
-                    ? {
-                          ...comment,
-                          replies: [...comment.replies, reply],
-                          isExpanded: true,
-                      }
-                    : comment
-            )
-        );
-        setReplyContent("");
-        setReplyTo(null);
-    };
+    //     setComments((prev) =>
+    //         prev.map((comment) =>
+    //             comment.id === commentId
+    //                 ? {
+    //                       ...comment,
+    //                     //   replies: [...comment.replies, reply],
+    //                       isExpanded: true,
+    //                   }
+    //                 : comment
+    //         )
+    //     );
+    //     setReplyContent("");
+    //     setReplyTo(null);
+    // };
 
-    const toggleReplies = (commentId: number) => {
-        setComments((prev) =>
-            prev.map((comment) =>
-                comment.id === commentId
-                    ? { ...comment, isExpanded: !comment.isExpanded }
-                    : comment
-            )
-        );
-    };
+    // const toggleReplies = (commentId: UUID) => {
+    //     setComments((prev) =>
+    //         prev.map((comment) =>
+    //             comment.id === commentId
+    //                 ? { ...comment, isExpanded: !comment.isExpanded }
+    //                 : comment
+    //         )
+    //     );
+    // };
 
     const CommentComponent = ({
         comment,
@@ -156,9 +168,9 @@ export default function Comment({ postId }: { postId: string }) {
                     <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
                             <span className="font-medium text-gray-900">
-                                {comment.author}
+                                익명
                             </span>
-                            {comment.isAuthor && (
+                            {comment.authorId === '050301' && (
                                 <Badge className="bg-[#1976D2] text-white text-xs">
                                     작성자
                                 </Badge>
@@ -166,7 +178,7 @@ export default function Comment({ postId }: { postId: string }) {
                         </div>
                         <div className="flex items-center gap-1 text-sm text-gray-500">
                             <Clock className="w-3 h-3" />
-                            <span>{comment.timeAgo}</span>
+                            <span>{timeAgo(comment.createat)}</span>
                         </div>
                     </div>
                     <p className="text-gray-700 mb-3">{comment.content}</p>
@@ -179,7 +191,7 @@ export default function Comment({ postId }: { postId: string }) {
                             <ThumbsUp className="w-4 h-4 mr-1" />
                             {comment.likes}
                         </Button>
-                        {!isReply && (
+                        {/* {!isReply && (
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -195,13 +207,13 @@ export default function Comment({ postId }: { postId: string }) {
                                 <Reply className="w-4 h-4 mr-1" />
                                 답글
                             </Button>
-                        )}
+                        )} */}
                     </div>
                 </CardContent>
             </Card>
 
             {/* Reply Form */}
-            {replyTo === comment.id && (
+            {/* {replyTo === comment.id && (
                 <div className="ml-8 mb-4">
                     <div className="flex gap-2">
                         <Textarea
@@ -229,7 +241,7 @@ export default function Comment({ postId }: { postId: string }) {
                         </div>
                     </div>
                 </div>
-            )}
+            )} */}
 
             {/* Replies */}
             {/* {comment.replies.length > 0 && (
