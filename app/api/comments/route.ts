@@ -23,7 +23,11 @@ import { NextResponse } from "next/server";
 // }
 
 
-// 댓글 목록 가져오기
+// -------------------------------
+// function : 
+// Description : 댓글 목록 가져오기 DB 연결 API
+// parameter : postId
+// -------------------------------
 export async function GET(req: Request) {
   console.log('comment_route.ts_댓글 조회 진입');
   const { searchParams } = new URL(req.url);
@@ -34,7 +38,6 @@ export async function GET(req: Request) {
   }
 
   const result 
-  // = await sql`SELECT * FROM "comments" WHERE "postId" = ${postId} ORDER BY "createdAt" DESC;`;
   = await sql`SELECT 
                 c.id, c.authorId, c.postId, c.content, c.createdat, COUNT(cl.id) AS likes
               FROM comments c
@@ -47,9 +50,13 @@ export async function GET(req: Request) {
 }
 
 
-// 댓글 추가
+// -------------------------------
+// function : 
+// Description : 댓글 작성 DB 연결 API
+// parameter : request
+// -------------------------------
 export async function POST(req: Request) {
-    console.log('comment_route.ts진입');
+    console.log('comment_route.ts_ 댓글 추가 진입');
     try {
     const { postId, content, authorId } = await req.json();
 
@@ -61,7 +68,7 @@ export async function POST(req: Request) {
     }
 
     const result =
-      await sql/* sql */`
+      await sql `
         INSERT INTO comments (authorid, postid, content)
         VALUES (${authorId}, ${postId}, ${content})
         RETURNING id, authorid, postid, content, createdat;
@@ -69,7 +76,6 @@ export async function POST(req: Request) {
 
     const row = result.rows[0];
 
-    // 처음 생성된 댓글의 좋아요는 0으로 내려줍니다.
     return NextResponse.json({
       success: true,
       comment: {
@@ -88,26 +94,5 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-//   const userId = await getUserIdFromJWT();
-    const userId = '050301';  // 로그인한 userId 값으로 교체
-  if (!userId) {
-    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
-  }
-  
-  const { content, postId } = await req.json();
-
-  if (!content || !postId) {
-    console.log(`content: ${content} postId: ${postId}`);
-    
-    return NextResponse.json({ success: false, message: "Missing fields" }, { status: 400 });
-  }
-
-
-  await sql`
-    INSERT INTO "comments" ("content", "authorId", "postId")
-    VALUES (${content}, ${userId}, ${postId});
-  `;
-
-  return NextResponse.json({ success: true, message: "Comment added" }, { status: 201 });
 }
 

@@ -58,16 +58,6 @@ export default function Comment({ postId }: { postId: UUID }) {
     //                 likes: 1,
     //                 replies: [],
     //             },
-    //             {
-    //                 id: 12,
-    //                 content:
-    //                     "GitHub의 Pull Request 기능을 주로 사용했습니다. 팀원들과 소통하기에 좋더라고요.",
-    //                 author: "작성자",
-    //                 isAuthor: true,
-    //                 timeAgo: "25분 전",
-    //                 likes: 2,
-    //                 replies: [],
-    //             },
     //         ],
     //         isExpanded: true,
     //     }
@@ -86,32 +76,43 @@ export default function Comment({ postId }: { postId: UUID }) {
         fetchComments();
     }, [postId]);
 
-    const handleCommentSubmit = (e: React.FormEvent) => {
+    // -------------------------------
+    // function : handleCommentSubmit
+    // Description : 댓글 작성 이벤트
+    // parameter : none
+    // -------------------------------
+    const handleCommentSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newComment.trim()) return;
 
-        async function fetchComments() {
-            const res = await fetch(`/api/comments?postId=${postId}`);
-            const data = await res.json();
-            if (data.success) setComments(data.comments);
-
-            const comment: Comment = {
-                id: randomUUID(),  // 수정 필요
-                content: newComment,
-                authorId: '050301',
+        try {
+            const res = await fetch("/api/comments", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include", // same-origin이면 생략 가능
+            cache: "no-store",
+            body: JSON.stringify({
                 postId: postId,
-                // isAuthor: false,
+                content: newComment,
+                authorId: '050301', // 수정필요
                 createat:new Date(),
-                likes: 0,
-                // replies: [],
-                // isExpanded: false,
-            };
-            setComments((prev) => [...prev, comment]);
+            }),
+        });
+
+        const data = await res.json(); // 서버는 항상 JSON으로 응답
+        if (!res.ok || !data?.success) {
+            console.error("댓글 등록 실패:", data);
+            alert(data?.message ?? "댓글 등록 실패");
+            return;
         }
-        fetchComments();
+        // 서버가 돌려준 새 댓글을 목록 최상단에 추가
+        setComments((prev) => [data.comment, ...prev]);
+        setNewComment("");
 
-
-        // setNewComment("");
+        } catch (err) {
+            console.error(err);
+            alert("네트워크 오류로 댓글 등록에 실패했습니다.");
+        }
     };
 
     // const handleReplySubmit = (commentId: UUID) => {
@@ -171,6 +172,7 @@ export default function Comment({ postId }: { postId: UUID }) {
                             <span className="font-medium text-gray-900">
                                 익명
                             </span>
+                            {/*여기 바꿔야 함!!!!!!! 로그인한 사람 === post의 authorId */}
                             {comment.authorId === '050301' && (
                                 <Badge className="bg-[#1976D2] text-white text-xs">
                                     작성자
