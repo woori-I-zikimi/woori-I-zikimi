@@ -2,11 +2,12 @@
 import { sql } from "@vercel/postgres";
 import HomeClient from "./HomeClient";
 import { isValidCategory } from "@/lib/category";
+import { UUID } from "crypto";
 
 export const revalidate = 0;
 
 type DBRow = {
-  id: string;
+  id: UUID;
   title: string | null;
   content: string | null;
   category: string | null;

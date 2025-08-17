@@ -79,6 +79,7 @@ export default function Comment({ postId }: { postId: UUID }) {
     useEffect(() => {
         async function fetchComments() {
             const res = await fetch(`/api/comments?postId=${postId}`);
+            console.log('댓글 조회 응답', res);
             const data = await res.json();
             if (data.success) setComments(data.comments);
         }
