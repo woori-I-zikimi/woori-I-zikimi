@@ -47,7 +47,7 @@ export default async function Page() {
     content: r.content ?? "",
     likes: r.likecount,
     comments: r.commentcount,
-    createdAt: r.createdat,
+    createdAt: r.createdat.toString(),
   }));
 
   return <HomeClient initialPosts={posts} />;

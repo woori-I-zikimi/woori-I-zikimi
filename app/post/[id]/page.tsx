@@ -4,7 +4,6 @@ import type React from "react";
 
 import { useEffect, useState, use } from "react"; // [ADD] React.use()로 params 언랩
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,15 +20,13 @@ import {
   ThumbsUp,
   MessageCircle,
   Clock,
-  Reply,
-  ChevronDown,
-  ChevronUp,
   Pencil, // 수정 버튼 아이콘
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Comment from "@/components/Comment";
 import { UUID } from "crypto";
+import PostLikeButton from "@/components/PostLikeButton";
 
 // API 응답 타입
 type PostDetail = {
@@ -65,14 +62,12 @@ interface CommentItem {
 
 // [MOD] params 타입을 Promise로 받고 React.use()로 언랩
 export default function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params); // [MOD] Next.js 15: params Promise 언랩
+  const { id } = use(params); 
 
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);          // [MOD] 서버 응답으로 초기화
-  const [likeCount, setLikeCount] = useState(0);          // [MOD] 서버 응답으로 초기화
-  const [newComment, setNewComment] = useState("");
-  const [replyTo, setReplyTo] = useState<number | null>(null);
-  const [replyContent, setReplyContent] = useState("");
+  const [isLiked, setIsLiked] = useState(false);      
+  const [likeCount, setLikeCount] = useState(0);         
+  const [likePending, setLikePending] = useState(false);
 
   // [ADD] 서버에서 가져온 게시글/플래그 상태
   const [post, setPost] = useState<PostDetail | null>(null);
@@ -129,21 +124,33 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
     router.refresh();
   };
 
+
   // [MOD] 좋아요: 토글 안 함, 한 번만 누를 수 있게
   const handleLike = async () => {
-    if (!post || isLiked) return; // 이미 눌렀으면 동작 안 함
+    if (!post || isLiked || likePending) return; // 이미 눌렀으면 동작하지 않도로 설정
+
     try {
-      // TODO: 실제 구현된 엔드포인트에 맞게 경로/메서드 조정
-      const res = await fetch(`/api/posts/${post.id}/like`, { method: "PATCH" });
+      setLikePending(true);
+      setIsLiked(true);
+    
+      // 실제 구현된 엔드포인트에 맞게 경로/메서드 조정
+      const res = await fetch(`/api/posts/${post.id}/like`, { method: "PUT" });
       const data = await res.json();
+
+      // 성공 시 서버 동기화
       if (data?.success) {
-        setIsLiked(true);                 // 항상 true만
-        setLikeCount((prev) => prev + 1); // 항상 +1만
+        setLikeCount(Number(data.likeCount ?? likeCount));
+      } else {
+        setIsLiked(flags.likedByMe); // 실패할 경우 롤백
       }
     } catch (e) {
       console.error(e);
+      setIsLiked(flags.likedByMe);
+    } finally {
+      setLikePending(false);
     }
   };
+
 
   // 기존 마크다운 렌더 함수 유지
   const renderMarkdown = (text: string) => {
@@ -291,16 +298,11 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
 
               {/* 좋아요 & 댓글 */}
               <div className="flex items-center gap-4">
-                <Button
-                  variant={isLiked ? "default" : "outline"}
-                  size="sm"
-                  onClick={handleLike}
-                  disabled={isLiked}
-                  className={isLiked ? "bg-[#1976D2] hover:bg-blue-700" : "hover:bg-gray-50"}
-                >
-                  <ThumbsUp className={`w-4 h-4 mr-1 ${isLiked ? "fill-current" : ""}`} />
-                  {likeCount}
-                </Button>
+                <PostLikeButton
+                  postId={post.id as string}
+                  initialLiked={flags.likedByMe}
+                  initialCount={post.likeCount}
+                />
 
                 <div className="flex items-center gap-1 text-gray-500">
                   <MessageCircle className="w-4 h-4" />
