@@ -75,8 +75,8 @@ export async function GET(req: NextRequest) {
                 r.createdat instanceof Date
                     ? r.createdat.toISOString()
                     : new Date(r.createdat).toISOString(),
-            likeCount: Number(r.likecount) || 0,
-            commentCount: Number(r.commentcount) || 0,
+            likes: r.likecount || 0,
+            comments: r.commentcount || 0,
         }));
 
         return NextResponse.json({

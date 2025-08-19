@@ -299,7 +299,29 @@ export default function MyPostsPage() {
                                         <p className="text-gray-600 mb-4 line-clamp-2">
                                             {post.content}
                                         </p>
-                                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                                        <div className="flex items-center gap-6 text-gray-500">
+                                            <div className="flex items-center gap-1">
+                                                <ThumbsUp className="w-4 h-4" />
+                                                <span className="text-sm font-medium">
+                                                    {post.likes}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <MessageCircle className="w-4 h-4" />
+                                                <span className="text-sm font-medium">
+                                                    {post.comments} 댓글
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <Clock className="w-4 h-4" />
+                                                <span>
+                                                    {new Date(
+                                                        post.createdAt
+                                                    ).toLocaleString()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {/* <div className="flex items-center gap-4 text-sm text-gray-500">
                                             <div className="flex items-center gap-1">
                                                 <ThumbsUp className="w-4 h-4" />
                                                 <span>{post.likes}</span>
@@ -314,7 +336,7 @@ export default function MyPostsPage() {
                                                 <Clock className="w-4 h-4" />
                                                 <span>{post.createdAt}</span>
                                             </div>
-                                        </div>
+                                        </div> */}
                                     </div>
                                     <div className="flex flex-col gap-2 ml-4">
                                         <Link href={`/edit-post/${post.id}`}>
