@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,7 +16,6 @@ import {
     Home,
     User,
     Plus,
-    Search,
     ThumbsUp,
     MessageCircle,
     Clock,
@@ -27,8 +25,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { NextRequest } from "next/server";
-import { jwtVerify } from "jose";
 import { UUID } from "crypto";
 
 type PostItem = {
@@ -38,6 +34,7 @@ type PostItem = {
     content: string;
     likes: number;
     comments: number;
+    canDelete: boolean;
     createdAt: string;
 };
 
@@ -76,9 +73,28 @@ export default function MyPostsPage() {
 
     const router = useRouter();
 
-    const handleDeletePost = (postId: UUID) => {
-        if (confirm("정말로 이 글을 삭제하시겠습니까?")) {
-            setPosts((prev) => prev.filter((post) => post.id !== postId));
+    // 글 삭제 핸들
+    const handleDeletePost = async (postId: UUID) => {
+        if (!confirm("정말로 이 글을 삭제하시겠습니까?")) return;
+
+        try {
+            const res = await fetch(`/api/posts/${postId}`, {
+                method: "DELETE",
+                credentials: "include", // 쿠키 보내기
+                cache: "no-store", // 캐싱 방지
+            });
+
+            if (res.ok) {
+                // 로컬 상태에서 제거
+                setPosts((prev) => prev.filter((post) => post.id !== postId));
+                alert("삭제 완료!");
+            } else {
+                const data = await res.json();
+                alert(data.message ?? "삭제 실패");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("서버 오류로 삭제에 실패했습니다.");
         }
     };
 
@@ -91,11 +107,6 @@ export default function MyPostsPage() {
     // 새 글 핸들
     const handleNewPost = () => {
         router.push("/new-post");
-    };
-
-    // 내 글 보기 핸들
-    const handleMyPost = () => {
-        router.push("/my-posts");
     };
 
     // 로그아웃 핸들
@@ -166,11 +177,6 @@ export default function MyPostsPage() {
                                     align="end"
                                     className="w-48"
                                 >
-                                    {/* <DropdownMenuItem
-                                        onClick={() => handleMyPost()}
-                                    >
-                                        View My Posts
-                                    </DropdownMenuItem> */}
                                     <DropdownMenuItem
                                         onClick={() =>
                                             setIsPasswordModalOpen(true)
@@ -321,22 +327,6 @@ export default function MyPostsPage() {
                                                 </span>
                                             </div>
                                         </div>
-                                        {/* <div className="flex items-center gap-4 text-sm text-gray-500">
-                                            <div className="flex items-center gap-1">
-                                                <ThumbsUp className="w-4 h-4" />
-                                                <span>{post.likes}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <MessageCircle className="w-4 h-4" />
-                                                <span>
-                                                    {post.comments} 댓글
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-1">
-                                                <Clock className="w-4 h-4" />
-                                                <span>{post.createdAt}</span>
-                                            </div>
-                                        </div> */}
                                     </div>
                                     <div className="flex flex-col gap-2 ml-4">
                                         <Link href={`/edit-post/${post.id}`}>
@@ -352,16 +342,16 @@ export default function MyPostsPage() {
                                         <Button
                                             size="sm"
                                             variant="outline"
-                                            // className={`${
-                                            //     post.canDelete
-                                            //         ? "hover:bg-red-50 hover:text-red-600 hover:border-red-600"
-                                            //         : "opacity-50 cursor-not-allowed"
-                                            // }`}
-                                            // disabled={!post.canDelete}
-                                            // onClick={() =>
-                                            //     post.canDelete &&
-                                            //     handleDeletePost(post.id)
-                                            // }
+                                            className={`${
+                                                post.canDelete
+                                                    ? "hover:bg-red-50 hover:text-red-600 hover:border-red-600"
+                                                    : "opacity-50 cursor-not-allowed"
+                                            }`}
+                                            disabled={!post.canDelete}
+                                            onClick={() =>
+                                                post.canDelete &&
+                                                handleDeletePost(post.id)
+                                            }
                                         >
                                             <Trash2 className="w-4 h-4 mr-1" />
                                             삭제
