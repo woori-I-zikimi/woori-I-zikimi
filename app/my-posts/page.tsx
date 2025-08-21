@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -33,13 +32,14 @@ import { UUID } from "crypto";
 import { Header } from "@/components/Header";
 
 type PostItem = {
-  id: UUID;
-  category: Category;
-  title: string;
-  content: string;
-  likes: number;
-  comments: number;
-  createdAt: string;
+    id: UUID;
+    category: Category;
+    title: string;
+    content: string;
+    likes: number;
+    comments: number;
+    canDelete: boolean;
+    createdAt: string;
 };
 
 export default function MyPostsPage() {
@@ -78,11 +78,30 @@ export default function MyPostsPage() {
 
   const router = useRouter();
 
-  const handleDeletePost = (postId: UUID) => {
-    if (confirm("정말로 이 글을 삭제하시겠습니까?")) {
-      setPosts((prev) => prev.filter((post) => post.id !== postId));
-    }
-  };
+   // 글 삭제 핸들
+   const handleDeletePost = async (postId: UUID) => {
+      if (!confirm("정말로 이 글을 삭제하시겠습니까?")) return;
+
+      try {
+        const res = await fetch(`/api/posts/${postId}`, {
+          method: "DELETE",
+          credentials: "include", // 쿠키 보내기
+          cache: "no-store", // 캐싱 방지
+        });
+        
+        if (res.ok) {
+          // 로컬 상태에서 제거
+          setPosts((prev) => prev.filter((post) => post.id !== postId));
+          alert("삭제 완료!");
+        } else {
+          const data = await res.json();
+          alert(data.message ?? "삭제 실패");
+        }
+      } catch (e) {
+        console.error(e);
+        alert("서버 오류로 삭제에 실패했습니다.");
+      }
+    };
 
   // 홈 핸들
   const handleHomeClick = () => {
@@ -95,18 +114,23 @@ export default function MyPostsPage() {
     router.push("/new-post");
   };
 
-  // 내 글 보기 핸들
-  const handleMyPost = () => {
-    router.push("/my-posts");
-  };
+    // 로그아웃 핸들
+    const handleLogout = async () => {
+        // console.log("로그아웃 클릭됨");
+        await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "include",
+            cache: "no-store",
+        });
 
-  // 로그아웃 핸들
-  const handleLogout = async () => {
-    // console.log("로그아웃 클릭됨");
-    await fetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "include",
-      cache: "no-store",
+        router.push("/login");
+        router.refresh();
+    };
+
+    const filteredPosts = posts.filter((p) => {
+        const byCat =
+            selectedCategory === "전체" || p.category === selectedCategory;
+        return byCat;
     });
 
     router.push("/login");
@@ -123,16 +147,40 @@ export default function MyPostsPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <Header pathname={pathname} />
-
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Page Title */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Posts</h1>
-          <p className="text-gray-600">
-            총 {posts.length}개의 글을 작성했습니다
-          </p>
-        </div>
+      
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="w-8 h-8 rounded-full p-0 text-white hover:text-blue-100 hover:bg-[#005fa3]"
+                                    >
+                                        <User className="w-4 h-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    align="end"
+                                    className="w-48"
+                                >
+                                    <DropdownMenuItem
+                                        onClick={() =>
+                                            setIsPasswordModalOpen(true)
+                                        }
+                                    >
+                                        Change Password
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        className="text-red-600 focus:text-red-600"
+                                        onClick={() => handleLogout()}
+                                    >
+                                        Logout
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                    </div>
+                </div>
+            </header>
 
         {/* 검색바 넣을 곳 */}
 
@@ -203,90 +251,97 @@ export default function MyPostsPage() {
                           variant="outline"
                           className="text-green-600 border-green-600"
                         >
-                          삭제 가능
-                        </Badge>
-                      )}
-                      {post.comments > 0 && (
-                        <Badge
-                          variant="outline"
-                          className="text-red-600 border-red-600"
-                        >
-                          삭제 불가
-                        </Badge>
-                      )}
-                    </div>
-                    <Link href={`/post/${post.id}`}>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2 hover:text-[#1976D2] cursor-pointer">
-                        {post.title}
-                      </h3>
-                    </Link>
-                    <p className="text-gray-600 mb-4 line-clamp-2">
-                      {post.content}
-                    </p>
-                    <div className="flex items-center gap-6 text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <ThumbsUp className="w-4 h-4" />
-                        <span className="text-sm font-medium">
-                          {post.likes}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MessageCircle className="w-4 h-4" />
-                        <span className="text-sm font-medium">
-                          {post.comments} 댓글
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        <span>{new Date(post.createdAt).toLocaleString()}</span>
-                      </div>
-                    </div>
-                    {/* <div className="flex items-center gap-4 text-sm text-gray-500">
+                            <CardContent className="p-6">
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Badge
+                                                variant="secondary"
+                                                className="bg-blue-50 text-[#0074c9] hover:bg-blue-100 border-blue-200"
+                                            >
+                                                {post.category}
+                                            </Badge>
+                                            {post.comments === 0 && (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="text-green-600 border-green-600"
+                                                >
+                                                    삭제 가능
+                                                </Badge>
+                                            )}
+                                            {post.comments > 0 && (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="text-red-600 border-red-600"
+                                                >
+                                                    삭제 불가
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <Link href={`/post/${post.id}`}>
+                                            <h3 className="text-lg font-semibold text-gray-900 mb-2 hover:text-[#1976D2] cursor-pointer">
+                                                {post.title}
+                                            </h3>
+                                        </Link>
+                                        <p className="text-gray-600 mb-4 line-clamp-2">
+                                            {post.content}
+                                        </p>
+                                        <div className="flex items-center gap-6 text-gray-500">
                                             <div className="flex items-center gap-1">
                                                 <ThumbsUp className="w-4 h-4" />
-                                                <span>{post.likes}</span>
+                                                <span className="text-sm font-medium">
+                                                    {post.likes}
+                                                </span>
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <MessageCircle className="w-4 h-4" />
-                                                <span>
+                                                <span className="text-sm font-medium">
                                                     {post.comments} 댓글
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <Clock className="w-4 h-4" />
-                                                <span>{post.createdAt}</span>
+                                                <span>
+                                                    {new Date(
+                                                        post.createdAt
+                                                    ).toLocaleString()}
+                                                </span>
                                             </div>
-                                        </div> */}
-                  </div>
-                  <div className="flex flex-col gap-2 ml-4">
-                    <Link href={`/edit-post/${post.id}`}>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="hover:bg-gray-50 bg-transparent"
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        수정
-                      </Button>
-                    </Link>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      // className={`${
-                      //     post.canDelete
-                      //         ? "hover:bg-red-50 hover:text-red-600 hover:border-red-600"
-                      //         : "opacity-50 cursor-not-allowed"
-                      // }`}
-                      // disabled={!post.canDelete}
-                      // onClick={() =>
-                      //     post.canDelete &&
-                      //     handleDeletePost(post.id)
-                      // }
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      삭제
-                    </Button>
-                  </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-2 ml-4">
+                                        <Link href={`/edit-post/${post.id}`}>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="hover:bg-gray-50 bg-transparent"
+                                            >
+                                                <Edit className="w-4 h-4 mr-1" />
+                                                수정
+                                            </Button>
+                                        </Link>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className={`${
+                                                post.canDelete
+                                                    ? "hover:bg-red-50 hover:text-red-600 hover:border-red-600"
+                                                    : "opacity-50 cursor-not-allowed"
+                                            }`}
+                                            disabled={!post.canDelete}
+                                            onClick={() =>
+                                                post.canDelete &&
+                                                handleDeletePost(post.id)
+                                            }
+                                        >
+                                            <Trash2 className="w-4 h-4 mr-1" />
+                                            삭제
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
                 </div>
               </CardContent>
             </Card>
