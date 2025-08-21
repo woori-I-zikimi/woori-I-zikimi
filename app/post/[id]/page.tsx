@@ -23,10 +23,11 @@ import {
   Pencil, // 수정 버튼 아이콘
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Comment from "@/components/Comment";
 import { UUID } from "crypto";
 import PostLikeButton from "@/components/PostLikeButton";
+import { Header } from "@/components/Header";
 
 // API 응답 타입
 type PostDetail = {
@@ -61,20 +62,28 @@ interface CommentItem {
 }
 
 // [MOD] params 타입을 Promise로 받고 React.use()로 언랩
-export default function PostDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params); 
+export default function PostDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
 
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);      
-  const [likeCount, setLikeCount] = useState(0);         
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
   const [likePending, setLikePending] = useState(false);
 
   // [ADD] 서버에서 가져온 게시글/플래그 상태
   const [post, setPost] = useState<PostDetail | null>(null);
-  const [flags, setFlags] = useState<Flags>({ isMine: false, likedByMe: false });
+  const [flags, setFlags] = useState<Flags>({
+    isMine: false,
+    likedByMe: false,
+  });
   const [loading, setLoading] = useState(true);
 
   const router = useRouter();
+  const pathname = usePathname();
 
   // [MOD] 상세 데이터 로드 (API 연동) - params.id 대신 언랩된 id 사용
   useEffect(() => {
@@ -86,8 +95,8 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
 
         setPost(data.post as PostDetail);
         setFlags(data.flags as Flags);
-        setIsLiked(Boolean(data.flags?.likedByMe));                 // 좋아요 상태 유지
-        setLikeCount(Number(data.post?.likeCount ?? 0));            // 좋아요 수 반영
+        setIsLiked(Boolean(data.flags?.likedByMe)); // 좋아요 상태 유지
+        setLikeCount(Number(data.post?.likeCount ?? 0)); // 좋아요 수 반영
       } catch (e) {
         console.error(e);
       } finally {
@@ -124,7 +133,6 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
     router.refresh();
   };
 
-
   // [MOD] 좋아요: 토글 안 함, 한 번만 누를 수 있게
   const handleLike = async () => {
     if (!post || isLiked || likePending) return; // 이미 눌렀으면 동작하지 않도로 설정
@@ -132,7 +140,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
     try {
       setLikePending(true);
       setIsLiked(true);
-    
+
       // 실제 구현된 엔드포인트에 맞게 경로/메서드 조정
       const res = await fetch(`/api/posts/${post.id}/like`, { method: "PUT" });
       const data = await res.json();
@@ -151,7 +159,6 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
     }
   };
 
-
   // 기존 마크다운 렌더 함수 유지
   const renderMarkdown = (text: string) => {
     return text
@@ -159,7 +166,10 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
         /```(\w+)?\n([\s\S]*?)```/g,
         '<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto my-4"><code>$2</code></pre>'
       )
-      .replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-2 py-1 rounded">$1</code>')
+      .replace(
+        /`([^`]+)`/g,
+        '<code class="bg-gray-100 px-2 py-1 rounded">$1</code>'
+      )
       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
       .replace(/\*(.*?)\*/g, "<em>$1</em>")
       .replace(/^\d+\.\s/gm, "<li>")
@@ -167,18 +177,18 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
   };
 
   const formatDate = (iso?: string) => {
-  if (!iso) return "";
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",   // 타임존 고정
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  }).format(new Date(iso));
-};
+    if (!iso) return "";
+    return new Intl.DateTimeFormat("ko-KR", {
+      timeZone: "Asia/Seoul", // 타임존 고정
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    }).format(new Date(iso));
+  };
 
   if (loading) {
     return <div className="p-6">불러오는 중…</div>;
@@ -190,65 +200,7 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-[#0074c9] text-white sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            {/* Left - Home Button (icon only) */}
-            <Button
-              variant="ghost"
-              className="text-white hover:text-blue-100 hover:bg-[#005fa3]"
-              onClick={() => handleHomeClick()}
-            >
-              <Home className="w-4 h-4" />
-            </Button>
-
-            {/* Center - Logo */}
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                <MessageCircle className="w-5 h-5 text-[#0074c9]" />
-              </div>
-              <h1 className="text-lg font-bold text-white">woori I zikimi</h1>
-            </div>
-
-            {/* Right - Write Button & Profile */}
-            <div className="flex items-center gap-4">
-              <Button
-                className="bg-white text-[#0074c9] hover:bg-gray-50"
-                onClick={() => handleNewPost()}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Write
-              </Button>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-8 h-8 rounded-full p-0 text-white hover:text-blue-100 hover:bg-[#005fa3]"
-                  >
-                    <User className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => handleMyPost()}>
-                    View My Posts
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsPasswordModalOpen(true)}>
-                    Change Password
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="text-red-600 focus:text-red-600"
-                    onClick={() => handleLogout()}
-                  >
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header pathname={pathname} />
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-6 py-8">
@@ -260,7 +212,9 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
               <Badge variant="secondary">{post.category}</Badge>
             </div>
 
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">{post.title}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+              {post.title}
+            </h1>
 
             <div className="flex items-center gap-4 text-sm text-gray-500 mb-6">
               {/* 작성자 표기는 항상 '작성자'로 */}
@@ -289,7 +243,11 @@ export default function PostDetailPage({ params }: { params: Promise<{ id: strin
               {/* 내 글이면 수정 버튼 */}
               {flags.isMine && (
                 <Link href={`/posts/${post.id}/edit`}>
-                  <Button variant="outline" size="sm" className="flex items-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center"
+                  >
                     <Pencil className="w-4 h-4 mr-2" />
                     수정하기
                   </Button>
