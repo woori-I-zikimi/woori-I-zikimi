@@ -37,12 +37,13 @@ export async function GET(req: NextRequest) {
         const { rows } = await sql`
       SELECT
         p.id,
+        p.category,
         p.title,
         p.content,
-        p.category,
-        p.createdat,
         COALESCE(pl.cnt, 0)::int AS likecount,
-        COALESCE(cm.cnt, 0)::int AS commentcount
+        COALESCE(cm.cnt, 0)::int AS commentcount,
+        (COALESCE(cm.cnt, 0) = 0) AS "canDelete",
+        p.createdat
       FROM public.post p
       LEFT JOIN (
         SELECT postid, COUNT(*) AS cnt
@@ -68,15 +69,16 @@ export async function GET(req: NextRequest) {
 
         const posts = rows.map((r: any) => ({
             id: r.id,
+            category: r.category ?? "기타",
             title: r.title ?? "(제목 없음)",
             content: r.content ?? "",
-            category: r.category ?? "기타",
+            likes: r.likecount || 0,
+            comments: r.commentcount || 0,
+            canDelete: r.canDelete,
             createdAt:
                 r.createdat instanceof Date
                     ? r.createdat.toISOString()
                     : new Date(r.createdat).toISOString(),
-            likeCount: Number(r.likecount) || 0,
-            commentCount: Number(r.commentcount) || 0,
         }));
 
         return NextResponse.json({

@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,7 +16,6 @@ import {
     Home,
     User,
     Plus,
-    Search,
     ThumbsUp,
     MessageCircle,
     Clock,
@@ -26,10 +24,9 @@ import {
     ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { NextRequest } from "next/server";
-import { jwtVerify } from "jose";
+import { usePathname, useRouter } from "next/navigation";
 import { UUID } from "crypto";
+import { Header } from "@/components/Header";
 
 type PostItem = {
     id: UUID;
@@ -38,6 +35,7 @@ type PostItem = {
     content: string;
     likes: number;
     comments: number;
+    canDelete: boolean;
     createdAt: string;
 };
 
@@ -75,10 +73,30 @@ export default function MyPostsPage() {
     const categories = useMemo(() => ["전체", ...CATEGORIES] as const, []);
 
     const router = useRouter();
+    const pathname = usePathname();
 
-    const handleDeletePost = (postId: UUID) => {
-        if (confirm("정말로 이 글을 삭제하시겠습니까?")) {
-            setPosts((prev) => prev.filter((post) => post.id !== postId));
+    // 글 삭제 핸들
+    const handleDeletePost = async (postId: UUID) => {
+        if (!confirm("정말로 이 글을 삭제하시겠습니까?")) return;
+
+        try {
+            const res = await fetch(`/api/posts/${postId}`, {
+                method: "DELETE",
+                credentials: "include", // 쿠키 보내기
+                cache: "no-store", // 캐싱 방지
+            });
+
+            if (res.ok) {
+                // 로컬 상태에서 제거
+                setPosts((prev) => prev.filter((post) => post.id !== postId));
+                alert("삭제 완료!");
+            } else {
+                const data = await res.json();
+                alert(data.message ?? "삭제 실패");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("서버 오류로 삭제에 실패했습니다.");
         }
     };
 
@@ -91,11 +109,6 @@ export default function MyPostsPage() {
     // 새 글 핸들
     const handleNewPost = () => {
         router.push("/new-post");
-    };
-
-    // 내 글 보기 핸들
-    const handleMyPost = () => {
-        router.push("/my-posts");
     };
 
     // 로그아웃 핸들
@@ -120,76 +133,7 @@ export default function MyPostsPage() {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <header className="bg-[#0074c9] text-white sticky top-0 z-50">
-                <div className="max-w-6xl mx-auto px-4 py-3">
-                    <div className="flex items-center justify-between">
-                        {/* Left - Home Button (icon only) */}
-                        <Button
-                            variant="ghost"
-                            className="text-white hover:text-blue-100 hover:bg-[#005fa3]"
-                            onClick={() => handleHomeClick()}
-                        >
-                            <Home className="w-4 h-4" />
-                        </Button>
-
-                        {/* Center - Logo */}
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                                <MessageCircle className="w-5 h-5 text-[#0074c9]" />
-                            </div>
-                            <h1 className="text-lg font-bold text-white">
-                                woori I zikimi
-                            </h1>
-                        </div>
-
-                        {/* Right - Write Button & Profile */}
-                        <div className="flex items-center gap-4">
-                            <Button
-                                className="bg-white text-[#0074c9] hover:bg-gray-50"
-                                onClick={() => handleNewPost()}
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Write
-                            </Button>
-
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-8 h-8 rounded-full p-0 text-white hover:text-blue-100 hover:bg-[#005fa3]"
-                                    >
-                                        <User className="w-4 h-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    align="end"
-                                    className="w-48"
-                                >
-                                    {/* <DropdownMenuItem
-                                        onClick={() => handleMyPost()}
-                                    >
-                                        View My Posts
-                                    </DropdownMenuItem> */}
-                                    <DropdownMenuItem
-                                        onClick={() =>
-                                            setIsPasswordModalOpen(true)
-                                        }
-                                    >
-                                        Change Password
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        className="text-red-600 focus:text-red-600"
-                                        onClick={() => handleLogout()}
-                                    >
-                                        Logout
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <Header pathname={pathname} />
 
             {/* Main Content */}
             <div className="max-w-4xl mx-auto px-4 py-8">
@@ -299,20 +243,26 @@ export default function MyPostsPage() {
                                         <p className="text-gray-600 mb-4 line-clamp-2">
                                             {post.content}
                                         </p>
-                                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                                        <div className="flex items-center gap-6 text-gray-500">
                                             <div className="flex items-center gap-1">
                                                 <ThumbsUp className="w-4 h-4" />
-                                                <span>{post.likes}</span>
+                                                <span className="text-sm font-medium">
+                                                    {post.likes}
+                                                </span>
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <MessageCircle className="w-4 h-4" />
-                                                <span>
+                                                <span className="text-sm font-medium">
                                                     {post.comments} 댓글
                                                 </span>
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <Clock className="w-4 h-4" />
-                                                <span>{post.createdAt}</span>
+                                                <span>
+                                                    {new Date(
+                                                        post.createdAt
+                                                    ).toLocaleString()}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
@@ -330,16 +280,16 @@ export default function MyPostsPage() {
                                         <Button
                                             size="sm"
                                             variant="outline"
-                                            // className={`${
-                                            //     post.canDelete
-                                            //         ? "hover:bg-red-50 hover:text-red-600 hover:border-red-600"
-                                            //         : "opacity-50 cursor-not-allowed"
-                                            // }`}
-                                            // disabled={!post.canDelete}
-                                            // onClick={() =>
-                                            //     post.canDelete &&
-                                            //     handleDeletePost(post.id)
-                                            // }
+                                            className={`${
+                                                post.canDelete
+                                                    ? "hover:bg-red-50 hover:text-red-600 hover:border-red-600"
+                                                    : "opacity-50 cursor-not-allowed"
+                                            }`}
+                                            disabled={!post.canDelete}
+                                            onClick={() =>
+                                                post.canDelete &&
+                                                handleDeletePost(post.id)
+                                            }
                                         >
                                             <Trash2 className="w-4 h-4 mr-1" />
                                             삭제

@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Home, MessageCircle, User, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { Header } from "@/components/Header";
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleSubmit = async (e: React.FormEvent) => {
     // e.preventDefault();
@@ -80,19 +82,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-[#0074c9] text-white sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-center">
-            {/* Center - Logo */}
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                <MessageCircle className="w-5 h-5 text-[#0074c9]" />
-              </div>
-              <h1 className="text-lg font-bold text-white">woori I zikimi</h1>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header pathname={pathname} />
 
       {/* Login Form */}
       <div className="flex items-center justify-center py-20">

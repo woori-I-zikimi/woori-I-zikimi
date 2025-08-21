@@ -23,10 +23,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { CATEGORIES, type Category } from "@/lib/category";
 import { useMemo, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PasswordChangeModal from "../components/password-change-modal";
 import { UUID } from "crypto";
+import { Header } from "@/components/Header";
+import { usePathname } from "next/navigation";
 
 type PostItem = {
   id: UUID;
@@ -49,7 +50,7 @@ export default function HomeClient({
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [search, setSearch] = useState("");
   const postsPerPage = 10;
-  const router = useRouter();
+  const pathname = usePathname();
 
   //   const [selectedCategory, setSelectedCategory] = useState("전체");
   //   const categories = ["전체", "자유", "프로젝트", "취업", "수업", "기타"];
@@ -67,27 +68,6 @@ export default function HomeClient({
   }, []);
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
-
-  // 홈/글쓰기/내 글/로그아웃
-  const handleHomeClick = () => {
-    router.push("/");
-    router.refresh();
-  };
-  const handleNewPost = () => {
-    router.push("/new-post");
-  };
-  const handleMyPost = () => {
-    router.push("/my-posts");
-  };
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "include",
-      cache: "no-store",
-    });
-    router.push("/login");
-    router.refresh();
-  };
 
   // 검색 + 카테고리 필터
   const filtered = initialPosts.filter((p) => {
@@ -120,83 +100,38 @@ export default function HomeClient({
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Header */}
-      <header className="bg-[#0074c9] text-white sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              className="text-white hover:text-blue-100 hover:bg-[#005fa3]"
-              onClick={handleHomeClick}
-            >
-              <Home className="w-4 h-4" />
-            </Button>
+      <Header pathname="/" />
 
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                <MessageCircle className="w-5 h-5 text-[#0074c9]" />
-              </div>
-              <h1 className="text-lg font-bold text-white">woori I zikimi</h1>
-            </div>
+      <section className="bg-[#0074c9] text-white py-20 relative overflow-hidden">
+        {/* <div className="absolute inset-0 bg-[url('/tech-pattern.png')] opacity-10 "></div> */}
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <h2 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+            자유로운 질문, 열린 답변
+          </h2>
 
-            <div className="flex items-center gap-4">
-              <Button
-                className="bg-white text-[#0074c9] hover:bg-gray-50"
-                onClick={handleNewPost}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Write
-              </Button>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-8 h-8 rounded-full p-0 text-white hover:text-blue-100 hover:bg-[#005fa3]"
-                  >
-                    <User className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={handleMyPost}>
-                    View My Posts
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => setIsPasswordModalOpen(true)}
-                  >
-                    Change Password
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="text-red-600 focus:text-red-600"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+          <p className="text-xl text-blue-100 max-w-3xl mx-auto leading-relaxed">
+            편하게 묻고 답하며, 더 나은 FISA를 만들어가요
+          </p>
+        </div>
+        <div className="h-4">
+          {/* 검색 */}
+          <div className="max-w-4xl mx-auto px-4 py-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Input
+                type="text"
+                placeholder="질문이나 카테고리를 검색해주세요"
+                className="pl-10 h-12 text-base border-gray-300 focus:border-[#0074c9] focus:ring-[#0074c9] bg-white text-black"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
             </div>
           </div>
         </div>
-      </header>
-
-      {/* Search */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <Input
-              type="text"
-              placeholder="Search questions or categories..."
-              className="pl-10 h-12 text-base border-gray-300 focus:border-[#0074c9] focus:ring-[#0074c9]"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
-        </div>
-      </div>
+      </section>
 
       {/* Main */}
       <main className="max-w-4xl mx-auto px-4 py-8">
@@ -206,49 +141,52 @@ export default function HomeClient({
             <h2 className="text-2xl font-bold text-gray-900">
               Recent Questions
             </h2>
-
-            {/* Sort */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="text-gray-600 hover:text-gray-900 border-gray-300"
-                >
-                  {sortBy === "latest" ? "Latest" : "Popular"}
-                  <ChevronDown className="w-4 h-4 ml-2" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setSortBy("latest")}>
-                  Latest
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSortBy("popular")}>
-                  Popular
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
+          <div className="mb-6 flex items-center justify-between">
+            {/* Category Filter */}
+            <div className="flex flex-wrap gap-2">
+              {categories.map((cat) => (
+                <Button
+                  key={cat}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedCategory(cat);
+                    setCurrentPage(1);
+                  }}
+                  className={`border border-gray-300 font-medium transition-colors ${
+                    selectedCategory === cat
+                      ? "bg-[#0074c9] text-white border-[#0074c9] hover:bg-[#005ba3] hover:border-[#005ba3]"
+                      : "text-gray-600 bg-white hover:text-gray-900 hover:bg-gray-50"
+                  }`}
+                >
+                  {cat}
+                </Button>
+              ))}
+            </div>
 
-          {/* Categories */}
-          <div className="flex flex-wrap gap-2">
-            {categories.map((cat) => (
-              <Button
-                key={cat}
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setSelectedCategory(cat);
-                  setCurrentPage(1);
-                }}
-                className={`border border-gray-300 font-medium transition-colors ${
-                  selectedCategory === cat
-                    ? "bg-[#0074c9] text-white border-[#0074c9] hover:bg-[#005ba3] hover:border-[#005ba3]"
-                    : "text-gray-600 bg-white hover:text-gray-900 hover:bg-gray-50"
-                }`}
-              >
-                {cat}
-              </Button>
-            ))}
+            {/* 정렬 */}
+            <div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="text-gray-600 hover:text-gray-900 border-gray-300"
+                  >
+                    {sortBy === "latest" ? "Latest" : "Popular"}
+                    <ChevronDown className="w-4 h-4 ml-2" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setSortBy("latest")}>
+                    Latest
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setSortBy("popular")}>
+                    Popular
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
 
