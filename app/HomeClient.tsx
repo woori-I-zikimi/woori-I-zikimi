@@ -27,6 +27,7 @@ import Link from "next/link";
 import PasswordChangeModal from "../components/password-change-modal";
 import { UUID } from "crypto";
 import { Header } from "@/components/Header";
+import { usePathname } from "next/navigation";
 
 type PostItem = {
   id: UUID;
@@ -49,6 +50,7 @@ export default function HomeClient({
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [search, setSearch] = useState("");
   const postsPerPage = 10;
+  const pathname = usePathname();
 
   //   const [selectedCategory, setSelectedCategory] = useState("전체");
   //   const categories = ["전체", "자유", "프로젝트", "취업", "수업", "기타"];
@@ -98,7 +100,7 @@ export default function HomeClient({
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Header */}
-      <Header />
+      <Header pathname="/" />
 
       <section className="bg-[#0074c9] text-white py-20 relative overflow-hidden">
         {/* <div className="absolute inset-0 bg-[url('/tech-pattern.png')] opacity-10 "></div> */}
@@ -106,6 +108,7 @@ export default function HomeClient({
           <h2 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
             자유로운 질문, 열린 답변
           </h2>
+
           <p className="text-xl text-blue-100 max-w-3xl mx-auto leading-relaxed">
             편하게 묻고 답하며, 더 나은 FISA를 만들어가요
           </p>
