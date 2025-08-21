@@ -24,8 +24,9 @@ import {
     ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { UUID } from "crypto";
+import { Header } from "@/components/Header";
 
 type PostItem = {
     id: UUID;
@@ -72,6 +73,7 @@ export default function MyPostsPage() {
     const categories = useMemo(() => ["전체", ...CATEGORIES] as const, []);
 
     const router = useRouter();
+    const pathname = usePathname();
 
     // 글 삭제 핸들
     const handleDeletePost = async (postId: UUID) => {
@@ -131,71 +133,7 @@ export default function MyPostsPage() {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <header className="bg-[#0074c9] text-white sticky top-0 z-50">
-                <div className="max-w-6xl mx-auto px-4 py-3">
-                    <div className="flex items-center justify-between">
-                        {/* Left - Home Button (icon only) */}
-                        <Button
-                            variant="ghost"
-                            className="text-white hover:text-blue-100 hover:bg-[#005fa3]"
-                            onClick={() => handleHomeClick()}
-                        >
-                            <Home className="w-4 h-4" />
-                        </Button>
-
-                        {/* Center - Logo */}
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                                <MessageCircle className="w-5 h-5 text-[#0074c9]" />
-                            </div>
-                            <h1 className="text-lg font-bold text-white">
-                                woori I zikimi
-                            </h1>
-                        </div>
-
-                        {/* Right - Write Button & Profile */}
-                        <div className="flex items-center gap-4">
-                            <Button
-                                className="bg-white text-[#0074c9] hover:bg-gray-50"
-                                onClick={() => handleNewPost()}
-                            >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Write
-                            </Button>
-
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-8 h-8 rounded-full p-0 text-white hover:text-blue-100 hover:bg-[#005fa3]"
-                                    >
-                                        <User className="w-4 h-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    align="end"
-                                    className="w-48"
-                                >
-                                    <DropdownMenuItem
-                                        onClick={() =>
-                                            setIsPasswordModalOpen(true)
-                                        }
-                                    >
-                                        Change Password
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        className="text-red-600 focus:text-red-600"
-                                        onClick={() => handleLogout()}
-                                    >
-                                        Logout
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
-                    </div>
-                </div>
-            </header>
+            <Header pathname={pathname} />
 
             {/* Main Content */}
             <div className="max-w-4xl mx-auto px-4 py-8">
