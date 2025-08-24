@@ -5,7 +5,12 @@ import { NextResponse } from "next/server";
 
 
 
-// JWT 검증 함수
+
+// -------------------------------
+// function : getUserIdFromJWT()
+// Description : JWT 검증 함수
+// parameter : 
+// -------------------------------
 async function getUserIdFromJWT() {
   const cookie = (await cookies()).get("session");
   if (!cookie) return null;
@@ -35,27 +40,69 @@ export async function GET(req: Request) {
 
   const userId = await getUserIdFromJWT();
 
+//   const result = await sql`
+//   SELECT 
+//     c.id,
+//     c.authorid,
+//     c.postid,
+//     c.content,
+//     c.createdat,
+    
+//     COUNT(cl.id)::int AS likes,                         -- 숫자 고정
+//     EXISTS (
+//       SELECT 1
+//       FROM commentlikes cl2
+//       WHERE cl2.commentid = c.id
+//         AND ${userId ?? null}::text IS NOT NULL         -- userId 없으면 곧장 false
+//         AND cl2.authorid = ${userId ?? null}::text      -- ← 타입 일치 (text = text)
+//     ) AS "likedByMe"
+//   FROM comments c
+//   LEFT JOIN commentlikes cl ON c.id = cl.commentid
+//   WHERE c.postid = ${postId}::uuid                      -- postid가 uuid면 유지, 아니면 ::uuid 제거
+//   GROUP BY c.id, c.authorid, c.postid, c.content, c.createdat
+//   ORDER BY c.createdat DESC;
+// `;
+
   const result = await sql`
-  SELECT 
-    c.id,
-    c.authorid,
-    c.postid,
-    c.content,
-    c.createdat,
-    COUNT(cl.id)::int AS likes,                         -- 숫자 고정
-    EXISTS (
-      SELECT 1
-      FROM commentlikes cl2
-      WHERE cl2.commentid = c.id
-        AND ${userId ?? null}::text IS NOT NULL         -- userId 없으면 곧장 false
-        AND cl2.authorid = ${userId ?? null}::text      -- ← 타입 일치 (text = text)
-    ) AS "likedByMe"
-  FROM comments c
-  LEFT JOIN commentlikes cl ON c.id = cl.commentid
-  WHERE c.postid = ${postId}::uuid                      -- postid가 uuid면 유지, 아니면 ::uuid 제거
-  GROUP BY c.id, c.authorid, c.postid, c.content, c.createdat
-  ORDER BY c.createdat DESC;
-`;
+    SELECT
+      c.id::text                        AS "id",
+      c.authorid                        AS "authorId",
+      c.postid::text                    AS "postId",
+      c.content                         AS "content",
+      c.createdat                       AS "createdat",
+      COALESCE(l.likes, 0)::int         AS "likes",
+      COALESCE(l.liked_by_me, FALSE)    AS "likedByMe",
+      COALESCE(rep.replies, '[]'::json) AS "replies"
+    FROM comments c
+
+    LEFT JOIN (
+      SELECT
+        cl.commentid,
+        COUNT(*)::int                                AS likes,
+        COALESCE(BOOL_OR(cl.authorid = ${userId}::text), FALSE) AS liked_by_me
+      FROM commentlikes cl
+      GROUP BY cl.commentid
+    ) l ON l.commentid = c.id
+
+    LEFT JOIN (
+      SELECT
+        r.commentid,
+        json_agg(
+          json_build_object(
+            'id',        r.id::text,
+            'authorId',  r.authorid,
+            'content',   r.content,
+            'createdAt', r.createdat
+          )
+          ORDER BY r.createdat DESC
+        ) AS replies
+      FROM replies r
+      GROUP BY r.commentid
+    ) rep ON rep.commentid = c.id
+
+    WHERE c.postid = ${postId}::uuid
+  
+  `;
 
 
 
@@ -70,7 +117,7 @@ export async function GET(req: Request) {
 // -------------------------------
 export async function POST(req: Request) {
     try {
-    const { postId, content, authorId } = await req.json();
+    const { postId, content } = await req.json();
 
     if (!postId || !content) {
       return NextResponse.json(
@@ -79,6 +126,7 @@ export async function POST(req: Request) {
       );
     }
 
+    const authorId = await getUserIdFromJWT();
     const result =
       await sql `
         INSERT INTO comments (authorid, postid, content)
@@ -111,4 +159,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
 

@@ -270,7 +270,8 @@ export default function PostDetailPage({
         </Card>
 
         {/* Comments Section */}
-        <Comment postId={post.id} />
+        {/* <Comment postId={post.id} autorId={post.authorId} /> */}
+        <Comment postId={post.id} post_authorId={post.authorId} />
       </div>
 
       {/* Password Change Modal */}
