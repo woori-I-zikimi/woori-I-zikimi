@@ -149,6 +149,7 @@ export async function POST(req: Request) {
         createdAt: row.createdat,
         likes: 0,
         likedByMe: false,
+        replies: [],
       },
     });
   } catch (err) {

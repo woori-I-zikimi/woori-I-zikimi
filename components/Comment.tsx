@@ -11,17 +11,13 @@ import { timeAgo } from "@/lib/utils";
 import CommentLikeButton from "@/components/CommentLikeButton";
 
 import {
-
-    ThumbsUp,
     Clock,
     Reply,
     ChevronDown,
     ChevronUp,
 } from "lucide-react";
 
-import { useRouter } from "next/navigation";
-import { randomUUID, UUID } from "crypto";
-import { log } from "console";
+import { UUID } from "crypto";
 
 interface Comment {
     id: UUID;
@@ -47,11 +43,10 @@ type Reply = {
 interface CommentProps {
   postId: string;
   post_authorId: string;
+  onAdded?: () => void;
 }
 
-export default function Comment({ postId, post_authorId }: CommentProps) {
-    const [isLiked, setIsLiked] = useState(false);
-    const [likeCount, setLikeCount] = useState(12);
+export default function Comment({ postId, post_authorId, onAdded, }: CommentProps) {
     const [newComment, setNewComment] = useState("");
     const [replyTo, setReplyTo] = useState<string | null>(null);
     const [replyContent, setReplyContent] = useState("");
@@ -128,6 +123,8 @@ export default function Comment({ postId, post_authorId }: CommentProps) {
         // 서버가 돌려준 새 댓글을 목록 최상단에 추가
         setComments((prev) => [data.comment, ...prev]);
         setNewComment("");
+
+        onAdded?.();
 
         } catch (err) {
             console.error(err);

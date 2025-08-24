@@ -6,18 +6,8 @@ import { useEffect, useState, use } from "react"; // [ADD] React.use()로 params
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { PasswordChangeModal } from "@/components/password-change-modal";
 import {
-  Home,
-  User,
-  Plus,
-  ThumbsUp,
   MessageCircle,
   Clock,
   Pencil, // 수정 버튼 아이콘
@@ -72,6 +62,7 @@ export default function PostDetailPage({
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [likePending, setLikePending] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
 
   // 서버에서 가져온 게시글/플래그 상태
   const [post, setPost] = useState<PostDetail | null>(null);
@@ -96,6 +87,7 @@ export default function PostDetailPage({
         setFlags(data.flags as Flags);
         setIsLiked(Boolean(data.flags?.likedByMe)); // 좋아요 상태 유지
         setLikeCount(Number(data.post?.likeCount ?? 0)); // 좋아요 수 반영
+        setCommentCount(Number(data.post?.commentCount ?? 0)); // 댓글 수 반영
       } catch (e) {
         console.error(e);
       } finally {
@@ -104,59 +96,10 @@ export default function PostDetailPage({
     })();
   }, [id]); // 의존성도 id로
 
-  // 홈 핸들
-  const handleHomeClick = () => {
-    router.push("/");
-    router.refresh();
-  };
-
-  // 새 글 핸들
-  const handleNewPost = () => {
-    router.push("/new-post");
-  };
-
-  // 내 글 보기 핸들
-  const handleMyPost = () => {
-    router.push("/my-posts");
-  };
-
-  // 로그아웃 핸들
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "include",
-      cache: "no-store",
-    });
-
-    router.push("/login");
-    router.refresh();
-  };
-
-  // 좋아요: 토글 안 함, 한 번만 누를 수 있게
-  const handleLike = async () => {
-    if (!post || isLiked || likePending) return; // 이미 눌렀으면 동작하지 않도로 설정
-
-    try {
-      setLikePending(true);
-      setIsLiked(true);
-
-      // 실제 구현된 엔드포인트에 맞게 경로/메서드 조정
-      const res = await fetch(`/api/posts/${post.id}/like`, { method: "PUT" });
-      const data = await res.json();
-
-      // 성공 시 서버 동기화
-      if (data?.success) {
-        setLikeCount(Number(data.likeCount ?? likeCount));
-      } else {
-        setIsLiked(flags.likedByMe); // 실패할 경우 롤백
-      }
-    } catch (e) {
-      console.error(e);
-      setIsLiked(flags.likedByMe);
-    } finally {
-      setLikePending(false);
-    }
-  };
+  // 댓글이 추가되었을 때 댓글 수 증가 핸들러
+  const handleCommentAdded = () => {
+    setCommentCount((count) => count + 1);
+  }
 
   // 기존 마크다운 렌더 함수 유지
   const renderMarkdown = (text: string) => {
@@ -248,7 +191,7 @@ export default function PostDetailPage({
                 />
                 <div className="flex items-center gap-1 text-gray-500">
                   <MessageCircle className="w-4 h-4" />
-                  <span>{post.commentCount} 댓글</span>
+                  <span>{commentCount} 댓글</span>
                 </div>
               </div>
 
@@ -271,7 +214,7 @@ export default function PostDetailPage({
 
         {/* Comments Section */}
         {/* <Comment postId={post.id} autorId={post.authorId} /> */}
-        <Comment postId={post.id} post_authorId={post.authorId} />
+        <Comment postId={post.id} post_authorId={post.authorId} onAdded={handleCommentAdded} />
       </div>
 
       {/* Password Change Modal */}
