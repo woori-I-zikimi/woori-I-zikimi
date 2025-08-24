@@ -5,22 +5,24 @@ import { NextResponse } from "next/server";
 
 
 
-// JWT 검증 함수
-// async function getUserIdFromJWT() {
-//   const cookie = (await cookies()).get("session");
-//   if (!cookie) return null;
 
-//   try {
-//       const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-//       const { payload } = await jwtVerify(cookie.value, secret);
-//       console.log(`인증됨${payload}`);
-//       return payload.userId as string;
-//   } catch {
-//     console.log('인증되지 않음');
-    
-//     return null;
-//   }
-// }
+// -------------------------------
+// function : getUserIdFromJWT()
+// Description : JWT 검증 함수
+// parameter : 
+// -------------------------------
+async function getUserIdFromJWT() {
+  const cookie = (await cookies()).get("session");
+  if (!cookie) return null;
+
+  try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+      const { payload } = await jwtVerify(cookie.value, secret);
+      return payload.userId as string;
+  } catch {
+    return null;
+  }
+}
 
 
 // -------------------------------
@@ -29,7 +31,6 @@ import { NextResponse } from "next/server";
 // parameter : postId
 // -------------------------------
 export async function GET(req: Request) {
-  console.log('comment_route.ts_댓글 조회 진입');
   const { searchParams } = new URL(req.url);
   const postId = searchParams.get("postId");
 
@@ -37,14 +38,73 @@ export async function GET(req: Request) {
     return NextResponse.json({ success: false, message: "postId is required" }, { status: 400 });
   }
 
-  const result 
-  = await sql`SELECT 
-                c.id, c.authorId, c.postId, c.content, c.createdat, COUNT(cl.id) AS likes
-              FROM comments c
-              LEFT JOIN commentlikes cl ON c.id = cl.commentid
-              WHERE c.postId = ${postId}
-              GROUP BY c.id, c.authorid, c.postid, c.content, c.createdat
-              ORDER BY c.createdat DESC;`;
+  const userId = await getUserIdFromJWT();
+
+//   const result = await sql`
+//   SELECT 
+//     c.id,
+//     c.authorid,
+//     c.postid,
+//     c.content,
+//     c.createdat,
+    
+//     COUNT(cl.id)::int AS likes,                         -- 숫자 고정
+//     EXISTS (
+//       SELECT 1
+//       FROM commentlikes cl2
+//       WHERE cl2.commentid = c.id
+//         AND ${userId ?? null}::text IS NOT NULL         -- userId 없으면 곧장 false
+//         AND cl2.authorid = ${userId ?? null}::text      -- ← 타입 일치 (text = text)
+//     ) AS "likedByMe"
+//   FROM comments c
+//   LEFT JOIN commentlikes cl ON c.id = cl.commentid
+//   WHERE c.postid = ${postId}::uuid                      -- postid가 uuid면 유지, 아니면 ::uuid 제거
+//   GROUP BY c.id, c.authorid, c.postid, c.content, c.createdat
+//   ORDER BY c.createdat DESC;
+// `;
+
+  const result = await sql`
+    SELECT
+      c.id::text                        AS "id",
+      c.authorid                        AS "authorId",
+      c.postid::text                    AS "postId",
+      c.content                         AS "content",
+      c.createdat                       AS "createdat",
+      COALESCE(l.likes, 0)::int         AS "likes",
+      COALESCE(l.liked_by_me, FALSE)    AS "likedByMe",
+      COALESCE(rep.replies, '[]'::json) AS "replies"
+    FROM comments c
+
+    LEFT JOIN (
+      SELECT
+        cl.commentid,
+        COUNT(*)::int                                AS likes,
+        COALESCE(BOOL_OR(cl.authorid = ${userId}::text), FALSE) AS liked_by_me
+      FROM commentlikes cl
+      GROUP BY cl.commentid
+    ) l ON l.commentid = c.id
+
+    LEFT JOIN (
+      SELECT
+        r.commentid,
+        json_agg(
+          json_build_object(
+            'id',        r.id::text,
+            'authorId',  r.authorid,
+            'content',   r.content,
+            'createdAt', r.createdat
+          )
+          ORDER BY r.createdat DESC
+        ) AS replies
+      FROM replies r
+      GROUP BY r.commentid
+    ) rep ON rep.commentid = c.id
+
+    WHERE c.postid = ${postId}::uuid
+  
+  `;
+
+
 
   return NextResponse.json({ success: true, comments: result.rows });
 }
@@ -56,9 +116,8 @@ export async function GET(req: Request) {
 // parameter : request
 // -------------------------------
 export async function POST(req: Request) {
-    console.log('comment_route.ts_ 댓글 추가 진입');
     try {
-    const { postId, content, authorId } = await req.json();
+    const { postId, content } = await req.json();
 
     if (!postId || !content) {
       return NextResponse.json(
@@ -67,6 +126,7 @@ export async function POST(req: Request) {
       );
     }
 
+    const authorId = await getUserIdFromJWT();
     const result =
       await sql `
         INSERT INTO comments (authorid, postid, content)
@@ -78,6 +138,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
+      headers: {
+        "Cache-Control": "no-store, no-cache"
+      },
       comment: {
         id: row.id,
         authorId: row.authorid,
@@ -85,6 +148,7 @@ export async function POST(req: Request) {
         content: row.content,
         createdAt: row.createdat,
         likes: 0,
+        likedByMe: false,
       },
     });
   } catch (err) {
@@ -95,4 +159,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
 
