@@ -49,7 +49,6 @@ type Flags = {
   likedByMe: boolean;
 };
 
-// [MOD] 이름 충돌 방지: 컴포넌트(Comment)와 겹치지 않도록 인터페이스 이름 변경
 interface CommentItem {
   id: number;
   content: string;
@@ -61,7 +60,7 @@ interface CommentItem {
   isExpanded?: boolean;
 }
 
-// [MOD] params 타입을 Promise로 받고 React.use()로 언랩
+// params 타입을 Promise로 받고 React.use()
 export default function PostDetailPage({
   params,
 }: {
@@ -74,7 +73,7 @@ export default function PostDetailPage({
   const [likeCount, setLikeCount] = useState(0);
   const [likePending, setLikePending] = useState(false);
 
-  // [ADD] 서버에서 가져온 게시글/플래그 상태
+  // 서버에서 가져온 게시글/플래그 상태
   const [post, setPost] = useState<PostDetail | null>(null);
   const [flags, setFlags] = useState<Flags>({
     isMine: false,
@@ -85,7 +84,7 @@ export default function PostDetailPage({
   const router = useRouter();
   const pathname = usePathname();
 
-  // [MOD] 상세 데이터 로드 (API 연동) - params.id 대신 언랩된 id 사용
+  // 상세 데이터 로드 (API 연동)
   useEffect(() => {
     (async () => {
       try {
@@ -103,7 +102,7 @@ export default function PostDetailPage({
         setLoading(false);
       }
     })();
-  }, [id]); // [MOD] 의존성도 id로
+  }, [id]); // 의존성도 id로
 
   // 홈 핸들
   const handleHomeClick = () => {
@@ -133,7 +132,7 @@ export default function PostDetailPage({
     router.refresh();
   };
 
-  // [MOD] 좋아요: 토글 안 함, 한 번만 누를 수 있게
+  // 좋아요: 토글 안 함, 한 번만 누를 수 있게
   const handleLike = async () => {
     if (!post || isLiked || likePending) return; // 이미 눌렀으면 동작하지 않도로 설정
 
