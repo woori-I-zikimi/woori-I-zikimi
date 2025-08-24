@@ -6,8 +6,18 @@ import { useEffect, useState, use } from "react"; // [ADD] React.use()로 params
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PasswordChangeModal } from "@/components/password-change-modal";
 import {
+  Home,
+  User,
+  Plus,
+  ThumbsUp,
   MessageCircle,
   Clock,
   Pencil, // 수정 버튼 아이콘
@@ -39,6 +49,7 @@ type Flags = {
   likedByMe: boolean;
 };
 
+// [MOD] 이름 충돌 방지: 컴포넌트(Comment)와 겹치지 않도록 인터페이스 이름 변경
 interface CommentItem {
   id: number;
   content: string;
@@ -50,7 +61,7 @@ interface CommentItem {
   isExpanded?: boolean;
 }
 
-// params 타입을 Promise로 받고 React.use()
+// [MOD] params 타입을 Promise로 받고 React.use()로 언랩
 export default function PostDetailPage({
   params,
 }: {
@@ -62,9 +73,8 @@ export default function PostDetailPage({
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [likePending, setLikePending] = useState(false);
-  const [commentCount, setCommentCount] = useState(0);
 
-  // 서버에서 가져온 게시글/플래그 상태
+  // [ADD] 서버에서 가져온 게시글/플래그 상태
   const [post, setPost] = useState<PostDetail | null>(null);
   const [flags, setFlags] = useState<Flags>({
     isMine: false,
@@ -75,7 +85,7 @@ export default function PostDetailPage({
   const router = useRouter();
   const pathname = usePathname();
 
-  // 상세 데이터 로드 (API 연동)
+  // [MOD] 상세 데이터 로드 (API 연동) - params.id 대신 언랩된 id 사용
   useEffect(() => {
     (async () => {
       try {
@@ -87,19 +97,67 @@ export default function PostDetailPage({
         setFlags(data.flags as Flags);
         setIsLiked(Boolean(data.flags?.likedByMe)); // 좋아요 상태 유지
         setLikeCount(Number(data.post?.likeCount ?? 0)); // 좋아요 수 반영
-        setCommentCount(Number(data.post?.commentCount ?? 0)); // 댓글 수 반영
       } catch (e) {
         console.error(e);
       } finally {
         setLoading(false);
       }
     })();
-  }, [id]); // 의존성도 id로
+  }, [id]); // [MOD] 의존성도 id로
 
-  // 댓글이 추가되었을 때 댓글 수 증가 핸들러
-  const handleCommentAdded = () => {
-    setCommentCount((count) => count + 1);
-  }
+  // 홈 핸들
+  const handleHomeClick = () => {
+    router.push("/");
+    router.refresh();
+  };
+
+  // 새 글 핸들
+  const handleNewPost = () => {
+    router.push("/new-post");
+  };
+
+  // 내 글 보기 핸들
+  const handleMyPost = () => {
+    router.push("/my-posts");
+  };
+
+  // 로그아웃 핸들
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    router.push("/login");
+    router.refresh();
+  };
+
+  // [MOD] 좋아요: 토글 안 함, 한 번만 누를 수 있게
+  const handleLike = async () => {
+    if (!post || isLiked || likePending) return; // 이미 눌렀으면 동작하지 않도로 설정
+
+    try {
+      setLikePending(true);
+      setIsLiked(true);
+
+      // 실제 구현된 엔드포인트에 맞게 경로/메서드 조정
+      const res = await fetch(`/api/posts/${post.id}/like`, { method: "PUT" });
+      const data = await res.json();
+
+      // 성공 시 서버 동기화
+      if (data?.success) {
+        setLikeCount(Number(data.likeCount ?? likeCount));
+      } else {
+        setIsLiked(flags.likedByMe); // 실패할 경우 롤백
+      }
+    } catch (e) {
+      console.error(e);
+      setIsLiked(flags.likedByMe);
+    } finally {
+      setLikePending(false);
+    }
+  };
 
   // 기존 마크다운 렌더 함수 유지
   const renderMarkdown = (text: string) => {
@@ -139,7 +197,7 @@ export default function PostDetailPage({
     return <div className="p-6">게시글을 찾을 수 없습니다.</div>;
   }
 
-    return (
+  return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <Header pathname={pathname} />
@@ -180,22 +238,9 @@ export default function PostDetailPage({
               </pre>
             )}
 
-            {/* 좋아요/댓글 + 수정하기 버튼 */}
-            <div className="flex items-center justify-between pt-4 border-t">
-              {/* 왼쪽: 좋아요 & 댓글 */}
-              <div className="flex items-center gap-4">
-                <PostLikeButton
-                  postId={post.id as string}
-                  initialLiked={flags.likedByMe}
-                  initialCount={post.likeCount}
-                />
-                <div className="flex items-center gap-1 text-gray-500">
-                  <MessageCircle className="w-4 h-4" />
-                  <span>{commentCount} 댓글</span>
-                </div>
-              </div>
-
-              {/* 오른쪽: 내 글이면 수정 버튼 */}
+            {/* 수정하기 버튼과 좋아요/댓글 영역 */}
+            <div className="flex flex-row-reverse items-center justify-between pt-4 border-t">
+              {/* 내 글이면 수정 버튼 */}
               {flags.isMine && (
                 <Link href={`/posts/${post.id}/edit`}>
                   <Button
@@ -208,13 +253,27 @@ export default function PostDetailPage({
                   </Button>
                 </Link>
               )}
+
+              {/* 좋아요 & 댓글 */}
+              <div className="flex items-center gap-4">
+                <PostLikeButton
+                  postId={post.id as string}
+                  initialLiked={flags.likedByMe}
+                  initialCount={post.likeCount}
+                />
+
+                <div className="flex items-center gap-1 text-gray-500">
+                  <MessageCircle className="w-4 h-4" />
+                  <span>{post.commentCount} 댓글</span> {/* 댓글 개수 표시 */}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Comments Section */}
-        {/* <Comment postId={post.id} autorId={post.authorId} /> */}
-        <Comment postId={post.id} post_authorId={post.authorId} onAdded={handleCommentAdded} />
+        {/* postId를 동적으로 전달 */}
+        <Comment postId={post.id} />
       </div>
 
       {/* Password Change Modal */}
