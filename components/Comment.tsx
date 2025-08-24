@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { timeAgo } from "@/lib/utils";
+import CommentLikeButton from "@/components/CommentLikeButton";
 
 import {
 
@@ -29,6 +30,7 @@ interface Comment {
     content: string;
     createat: Date;
     likes: number;
+    likedByMe: boolean;
     // replies: Comment[];
     // isExpanded?: boolean;
 }
@@ -68,7 +70,10 @@ export default function Comment({ postId }: { postId: UUID }) {
     // 댓글 불러오기
     useEffect(() => {
         async function fetchComments() {
-            const res = await fetch(`/api/comments?postId=${postId}`);
+            const res = await fetch(`/api/comments?postId=${postId}`, {
+                cache: "no-store",
+                credentials: "include",
+            });
             console.log('댓글 조회 응답', res);
             const data = await res.json();
             if (data.success) setComments(data.comments);
@@ -186,14 +191,11 @@ export default function Comment({ postId }: { postId: UUID }) {
                     </div>
                     <p className="text-gray-700 mb-3">{comment.content}</p>
                     <div className="flex items-center gap-4">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-gray-500 hover:text-[#1976D2]"
-                        >
-                            <ThumbsUp className="w-4 h-4 mr-1" />
-                            {comment.likes}
-                        </Button>
+                        <CommentLikeButton
+                            commentId={String(comment.id)}
+                            initialLikes={comment.likes}
+                            initialLikedByMe={comment.likedByMe}
+                        />
                         {/* {!isReply && (
                             <Button
                                 variant="ghost"
