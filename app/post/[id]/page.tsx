@@ -196,7 +196,7 @@ export default function PostDetailPage({
     return <div className="p-6">게시글을 찾을 수 없습니다.</div>;
   }
 
-  return (
+    return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <Header pathname={pathname} />
@@ -237,9 +237,22 @@ export default function PostDetailPage({
               </pre>
             )}
 
-            {/* 수정하기 버튼과 좋아요/댓글 영역 */}
-            <div className="flex flex-row-reverse items-center justify-between pt-4 border-t">
-              {/* 내 글이면 수정 버튼 */}
+            {/* 좋아요/댓글 + 수정하기 버튼 */}
+            <div className="flex items-center justify-between pt-4 border-t">
+              {/* 왼쪽: 좋아요 & 댓글 */}
+              <div className="flex items-center gap-4">
+                <PostLikeButton
+                  postId={post.id as string}
+                  initialLiked={flags.likedByMe}
+                  initialCount={post.likeCount}
+                />
+                <div className="flex items-center gap-1 text-gray-500">
+                  <MessageCircle className="w-4 h-4" />
+                  <span>{post.commentCount} 댓글</span>
+                </div>
+              </div>
+
+              {/* 오른쪽: 내 글이면 수정 버튼 */}
               {flags.isMine && (
                 <Link href={`/posts/${post.id}/edit`}>
                   <Button
@@ -252,26 +265,11 @@ export default function PostDetailPage({
                   </Button>
                 </Link>
               )}
-
-              {/* 좋아요 & 댓글 */}
-              <div className="flex items-center gap-4">
-                <PostLikeButton
-                  postId={post.id as string}
-                  initialLiked={flags.likedByMe}
-                  initialCount={post.likeCount}
-                />
-
-                <div className="flex items-center gap-1 text-gray-500">
-                  <MessageCircle className="w-4 h-4" />
-                  <span>{post.commentCount} 댓글</span> {/* 댓글 개수 표시 */}
-                </div>
-              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Comments Section */}
-        {/* postId를 동적으로 전달 */}
         <Comment postId={post.id} />
       </div>
 
