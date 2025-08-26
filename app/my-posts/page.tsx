@@ -271,7 +271,7 @@ export default function MyPostsPage() {
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                className="hover:bg-gray-50 bg-transparent"
+                                                className="hover:bg-gray-50 bg-transparent hover: cursor-pointer"
                                             >
                                                 <Edit className="w-4 h-4 mr-1" />
                                                 수정
