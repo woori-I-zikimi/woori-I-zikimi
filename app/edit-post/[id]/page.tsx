@@ -1,9 +1,8 @@
 "use client";
 
 import type React from "react";
-import router from "next/router";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,27 +16,46 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Home, User, Plus, Code, Eye, Edit, MessageCircle } from "lucide-react";
-import Link from "next/link";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { usePathname, useRouter } from "next/navigation";
+import { Code, Eye, Edit } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 import { Header } from "@/components/Header";
 
 export default function UpdatePostPage() {
     const [formData, setFormData] = useState({
         title: "",
         content: "",
+        code: "",
         category: "",
     });
     const [isPreview, setIsPreview] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
-    const pathname = usePathname();
+    const params = useParams(); // ★ /edit-post/[id]
+    // const id = Number(params?.id); // URL의 [id]
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetch(`/api/posts/${params.id}`, {
+                    cache: "no-store",
+                });
+                const data = await res.json();
+                if (!data?.success)
+                    throw new Error(data?.message || "LOAD_FAILED");
+
+                setFormData({
+                    title: data.post.title,
+                    content: data.post.content,
+                    code: data.post.code,
+                    category: data.post.category,
+                });
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setIsLoading(false);
+            }
+        })();
+    }, [params.id]); // 의존성도 id로
 
     const categories = [
         {
@@ -87,57 +105,57 @@ export default function UpdatePostPage() {
     };
 
     // 질문 작성 API(POST)
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
+    // const handleSubmit = async (e: React.FormEvent) => {
+    //     e.preventDefault();
+    //     setIsLoading(true);
 
-        // 코드와 내용 분리
-        const { codeBlocks, contentWithoutCode } = extractCodeBlocks(
-            formData.content
-        );
+    //     // 코드와 내용 분리
+    //     const { codeBlocks, contentWithoutCode } = extractCodeBlocks(
+    //         formData.content
+    //     );
 
-        try {
-            const res = await fetch("/api/posts", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                cache: "no-store",
-                credentials: "include",
-                body: JSON.stringify({
-                    title: formData.title,
-                    content: contentWithoutCode,
-                    code: codeBlocks.join("\n\n"), // 여러 개면 합쳐서 전달
-                    category: formData.category,
-                    isAnswered: false, // 기본값
-                }),
-            });
+    //     try {
+    //         const res = await fetch("/api/posts", {
+    //             method: "POST",
+    //             headers: { "Content-Type": "application/json" },
+    //             cache: "no-store",
+    //             credentials: "include",
+    //             body: JSON.stringify({
+    //                 title: formData.title,
+    //                 content: contentWithoutCode,
+    //                 code: codeBlocks.join("\n\n"), // 여러 개면 합쳐서 전달
+    //                 category: formData.category,
+    //                 isAnswered: false, // 기본값
+    //             }),
+    //         });
 
-            if (!res.ok) {
-                const { error } = await res.json();
-                console.log(error);
-                throw new Error(error || "작성 실패");
-            }
+    //         if (!res.ok) {
+    //             const { error } = await res.json();
+    //             console.log(error);
+    //             throw new Error(error || "작성 실패");
+    //         }
 
-            const { post } = await res.json();
+    //         const { post } = await res.json();
 
-            alert("게시글이 성공적으로 작성되었습니다!");
+    //         alert("게시글이 성공적으로 작성되었습니다!");
 
-            // 이동
-            if (post?.id != null) {
-                router.push(`/post/${post.id}`);
-                router.refresh(); // 최신화
-            } else {
-                // 혹시 id가 누락된 예외 케이스 대비
-                alert("작성은 되었지만 ID를 받지 못했어요. 홈으로 이동합니다.");
-                handleHomeClick();
-            }
+    //         // 이동
+    //         if (post?.id != null) {
+    //             router.push(`/post/${post.id}`);
+    //             router.refresh(); // 최신화
+    //         } else {
+    //             // 혹시 id가 누락된 예외 케이스 대비
+    //             alert("작성은 되었지만 ID를 받지 못했어요. 홈으로 이동합니다.");
+    //             handleHomeClick();
+    //         }
 
-            setFormData({ title: "", content: "", category: "" });
-        } catch (err: any) {
-            alert(err?.message ?? "작성 중 오류가 발생했습니다.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    //         setFormData({ title: "", content: "", category: "" });
+    //     } catch (err: any) {
+    //         alert(err?.message ?? "작성 중 오류가 발생했습니다.");
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
 
     const handleChange = (field: string, value: string) => {
         setFormData((prev) => ({
@@ -171,6 +189,20 @@ export default function UpdatePostPage() {
             .replace(/\n/g, "<br>");
     };
 
+    // code가 이미 ```로 감싸져 있지 않으면 감싸서 붙임
+    const mergeContentAndCode = (content: string, code?: string) => {
+        const safeContent = content ?? "";
+        const safeCode = (code ?? "").trim();
+
+        if (!safeCode) return safeContent;
+
+        const isFenced = /```[\s\S]*```/.test(safeCode);
+        const fenced = isFenced ? safeCode : `\n\`\`\`\n${safeCode}\n\`\`\`\n`;
+
+        // content 뒤에 코드블록을 붙여 하나의 마크다운 문자열 완성
+        return `${safeContent}\n\n${fenced}`;
+    };
+
     // 코드 블록 추출 함수
     const extractCodeBlocks = (text: string) => {
         const codeBlocks: string[] = [];
@@ -201,14 +233,14 @@ export default function UpdatePostPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-2xl font-bold text-gray-900">
-                            새 질문 작성
+                            질문 수정
                         </CardTitle>
                         <p className="text-gray-600">
                             개발 관련 질문을 작성해보세요
                         </p>
                     </CardHeader>
                     <CardContent>
-                        <form onSubmit={handleSubmit} className="space-y-6">
+                        <form className="space-y-6">
                             {/* 제목 입력 칸 */}
                             <div className="space-y-2">
                                 <Label
@@ -308,34 +340,58 @@ export default function UpdatePostPage() {
                                 </div>
 
                                 {isPreview ? (
-                                    <div
-                                        className="min-h-[300px] p-4 border rounded-lg bg-white prose max-w-none"
-                                        dangerouslySetInnerHTML={{
-                                            __html: renderMarkdown(
-                                                formData.content
-                                            ),
-                                        }}
-                                    />
+                                    <div className="space-y-4">
+                                        {/* 본문 */}
+                                        <div
+                                            className="min-h-[300px] p-4 border rounded-lg bg-white prose max-w-none"
+                                            dangerouslySetInnerHTML={{
+                                                __html: renderMarkdown(
+                                                    mergeContentAndCode(
+                                                        formData.content,
+                                                        formData.code
+                                                    )
+                                                ),
+                                            }}
+                                        />
+                                    </div>
                                 ) : (
                                     <Textarea
-                                        value={formData.content}
-                                        onChange={(e) =>
-                                            handleChange(
-                                                "content",
-                                                e.target.value
-                                            )
+                                        value={
+                                            formData.content +
+                                            (formData.code
+                                                ? `\n\n\`\`\`\n${formData.code}\n\`\`\`\n`
+                                                : "")
                                         }
-                                        placeholder="질문 내용을 마크다운으로 작성하세요...
-
-예시:
-**굵은 글씨**
-*기울임 글씨*
-`인라인 코드`
-
-```
-// 코드 블록
-console.log('Hello World!');
-```"
+                                        onChange={(e) => {
+                                            const text = e.target.value;
+                                            // 코드 블록 추출 (``` ... ``` 부분)
+                                            const match =
+                                                text.match(/```([\s\S]*?)```/);
+                                            if (match) {
+                                                // 코드 부분
+                                                const code = match[1].trim();
+                                                // 코드 블록 제거 후 나머지 = content
+                                                const content = text
+                                                    .replace(
+                                                        /```([\s\S]*?)```/,
+                                                        ""
+                                                    )
+                                                    .trim();
+                                                setFormData((prev) => ({
+                                                    ...prev,
+                                                    content,
+                                                    code,
+                                                }));
+                                            } else {
+                                                // 코드 블록 없으면 전부 content
+                                                setFormData((prev) => ({
+                                                    ...prev,
+                                                    content: text,
+                                                    code: "",
+                                                }));
+                                            }
+                                        }}
+                                        placeholder="질문 내용을 작성하세요..."
                                         required
                                         className="min-h-[300px] text-base font-mono"
                                     />
