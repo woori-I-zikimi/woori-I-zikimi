@@ -104,59 +104,58 @@ export default function UpdatePostPage() {
         router.refresh();
     };
 
-    // 질문 작성 API(POST)
-    // const handleSubmit = async (e: React.FormEvent) => {
-    //     e.preventDefault();
-    //     setIsLoading(true);
+    // 질문 수정 API(PUT)
+    const handleUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (isLoading) return; // 중복 제출 방지
+        setIsLoading(true);
 
-    //     // 코드와 내용 분리
-    //     const { codeBlocks, contentWithoutCode } = extractCodeBlocks(
-    //         formData.content
-    //     );
+        try {
+            // 1) 현재 입력 상태에서 content+code를 하나의 마크다운으로 합치고
+            // 2) 코드블록을 추출해서 content와 code를 분리
+            const merged = mergeContentAndCode(formData.content, formData.code);
+            const { codeBlocks, contentWithoutCode } =
+                extractCodeBlocks(merged);
 
-    //     try {
-    //         const res = await fetch("/api/posts", {
-    //             method: "POST",
-    //             headers: { "Content-Type": "application/json" },
-    //             cache: "no-store",
-    //             credentials: "include",
-    //             body: JSON.stringify({
-    //                 title: formData.title,
-    //                 content: contentWithoutCode,
-    //                 code: codeBlocks.join("\n\n"), // 여러 개면 합쳐서 전달
-    //                 category: formData.category,
-    //                 isAnswered: false, // 기본값
-    //             }),
-    //         });
+            const res = await fetch(`/api/posts/${params.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                cache: "no-store",
 
-    //         if (!res.ok) {
-    //             const { error } = await res.json();
-    //             console.log(error);
-    //             throw new Error(error || "작성 실패");
-    //         }
+                body: JSON.stringify({
+                    id: params.id, // 백엔드가 body의 id를 기대할 수 있어서 함께 전달
+                    title: formData.title.trim(),
+                    content: contentWithoutCode, // 코드 제거된 본문
+                    code: codeBlocks.join("\n\n"), // 여러 코드블록이면 합쳐서 저장
+                    category: formData.category,
+                    // isAnswered: false,
+                }),
+            });
 
-    //         const { post } = await res.json();
+            if (!res.ok) {
+                // 응답 본문이 없을 수도 있으니 안전하게 처리
+                let msg = "UPDATE_FAILED";
+                try {
+                    const j = await res.json();
+                    msg = j?.error || j?.message || msg;
+                } catch {}
+                throw new Error(msg);
+            }
 
-    //         alert("게시글이 성공적으로 작성되었습니다!");
+            const { post } = await res.json();
 
-    //         // 이동
-    //         if (post?.id != null) {
-    //             router.push(`/post/${post.id}`);
-    //             router.refresh(); // 최신화
-    //         } else {
-    //             // 혹시 id가 누락된 예외 케이스 대비
-    //             alert("작성은 되었지만 ID를 받지 못했어요. 홈으로 이동합니다.");
-    //             handleHomeClick();
-    //         }
-
-    //         setFormData({ title: "", content: "", category: "" });
-    //     } catch (err: any) {
-    //         alert(err?.message ?? "작성 중 오류가 발생했습니다.");
-    //     } finally {
-    //         setIsLoading(false);
-    //     }
-    // };
-
+            alert("게시글이 성공적으로 수정되었습니다!");
+            // 수정 후 상세로 이동 (응답에 id가 없으면 params.id 사용)
+            router.push(`/post/${post?.id ?? params.id}`);
+            router.refresh();
+        } catch (err: any) {
+            console.error(err);
+            alert(err?.message ?? "수정 중 오류가 발생했습니다.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
     const handleChange = (field: string, value: string) => {
         setFormData((prev) => ({
             ...prev,
@@ -240,7 +239,7 @@ export default function UpdatePostPage() {
                         </p>
                     </CardHeader>
                     <CardContent>
-                        <form className="space-y-6">
+                        <form onSubmit={handleUpdate} className="space-y-6">
                             {/* 제목 입력 칸 */}
                             <div className="space-y-2">
                                 <Label
@@ -408,13 +407,14 @@ export default function UpdatePostPage() {
                             <div className="flex gap-4 pt-4">
                                 <Button
                                     type="submit"
-                                    className="bg-[#1976D2] hover:bg-[#005fa3] px-8"
+                                    className="bg-[#1976D2] hover:bg-[#005fa3] px-8 hover: cursor-pointer"
                                     disabled={isLoading}
                                 >
-                                    {isLoading ? "작성 중..." : "질문 작성"}
+                                    {isLoading ? "작성 중..." : "질문 수정"}
                                 </Button>
                                 <Button
                                     type="button"
+                                    className="hover: cursor-pointer"
                                     variant="outline"
                                     onClick={() => window.history.back()}
                                 >
