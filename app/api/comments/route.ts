@@ -85,6 +85,8 @@ export async function POST(req: Request) {
         content: row.content,
         createdAt: row.createdat,
         likes: 0,
+        likedByMe: false,
+        replies: [],
       },
     });
   } catch (err) {

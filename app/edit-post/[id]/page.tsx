@@ -1,0 +1,430 @@
+"use client";
+
+import type React from "react";
+
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Code, Eye, Edit } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { Header } from "@/components/Header";
+
+export default function UpdatePostPage() {
+    const [formData, setFormData] = useState({
+        title: "",
+        content: "",
+        code: "",
+        category: "",
+    });
+    const [isPreview, setIsPreview] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
+    const params = useParams(); // ★ /edit-post/[id]
+    // const id = Number(params?.id); // URL의 [id]
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const res = await fetch(`/api/posts/${params.id}`, {
+                    cache: "no-store",
+                });
+                const data = await res.json();
+                if (!data?.success)
+                    throw new Error(data?.message || "LOAD_FAILED");
+
+                setFormData({
+                    title: data.post.title,
+                    content: data.post.content,
+                    code: data.post.code,
+                    category: data.post.category,
+                });
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setIsLoading(false);
+            }
+        })();
+    }, [params.id]); // 의존성도 id로
+
+    const categories = [
+        {
+            value: "자유",
+            label: "자유",
+            color: "bg-blue-100 text-blue-800",
+        },
+        {
+            value: "면접",
+            label: "면접",
+            color: "bg-green-100 text-green-800",
+        },
+        {
+            value: "프로젝트",
+            label: "프로젝트",
+            color: "bg-purple-100 text-purple-800",
+        },
+        {
+            value: "수업",
+            label: "수업",
+            color: "bg-orange-100 text-orange-800",
+        },
+    ];
+
+    // 홈 핸들
+    const handleHomeClick = () => {
+        router.push("/");
+        router.refresh();
+    };
+
+    // 내 글 보기 핸들
+    const handleMyPost = () => {
+        router.push("/my-posts");
+    };
+
+    // 로그아웃 핸들
+    const handleLogout = async () => {
+        // console.log("로그아웃 클릭됨");
+        await fetch("/api/auth/logout", {
+            method: "POST",
+            credentials: "include",
+            cache: "no-store",
+        });
+
+        router.push("/login");
+        router.refresh();
+    };
+
+    // 질문 수정 API(PUT)
+    const handleUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (isLoading) return; // 중복 제출 방지
+        setIsLoading(true);
+
+        try {
+            // 1) 현재 입력 상태에서 content+code를 하나의 마크다운으로 합치고
+            // 2) 코드블록을 추출해서 content와 code를 분리
+            const merged = mergeContentAndCode(formData.content, formData.code);
+            const { codeBlocks, contentWithoutCode } =
+                extractCodeBlocks(merged);
+
+            const res = await fetch(`/api/posts/${params.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                cache: "no-store",
+
+                body: JSON.stringify({
+                    id: params.id, // 백엔드가 body의 id를 기대할 수 있어서 함께 전달
+                    title: formData.title.trim(),
+                    content: contentWithoutCode, // 코드 제거된 본문
+                    code: codeBlocks.join("\n\n"), // 여러 코드블록이면 합쳐서 저장
+                    category: formData.category,
+                    // isAnswered: false,
+                }),
+            });
+
+            if (!res.ok) {
+                // 응답 본문이 없을 수도 있으니 안전하게 처리
+                let msg = "UPDATE_FAILED";
+                try {
+                    const j = await res.json();
+                    msg = j?.error || j?.message || msg;
+                } catch {}
+                throw new Error(msg);
+            }
+
+            const { post } = await res.json();
+
+            alert("게시글이 성공적으로 수정되었습니다!");
+            // 수정 후 상세로 이동 (응답에 id가 없으면 params.id 사용)
+            router.push(`/post/${post?.id ?? params.id}`);
+            router.refresh();
+        } catch (err: any) {
+            console.error(err);
+            alert(err?.message ?? "수정 중 오류가 발생했습니다.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    const handleChange = (field: string, value: string) => {
+        setFormData((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
+
+    const insertCodeBlock = () => {
+        const codeTemplate =
+            '\n```\n// 여기에 코드를 입력하세요\nconsole.log("Hello World!");\n```\n';
+        setFormData((prev) => ({
+            ...prev,
+            content: prev.content + codeTemplate,
+        }));
+    };
+
+    const renderMarkdown = (text: string) => {
+        // Simple markdown rendering for preview
+        return text
+            .replace(
+                /```(\w+)?\n([\s\S]*?)```/g,
+                '<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto"><code>$2</code></pre>'
+            )
+            .replace(
+                /`([^`]+)`/g,
+                '<code class="bg-gray-100 px-2 py-1 rounded">$1</code>'
+            )
+            .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+            .replace(/\*(.*?)\*/g, "<em>$1</em>")
+            .replace(/\n/g, "<br>");
+    };
+
+    // code가 이미 ```로 감싸져 있지 않으면 감싸서 붙임
+    const mergeContentAndCode = (content: string, code?: string) => {
+        const safeContent = content ?? "";
+        const safeCode = (code ?? "").trim();
+
+        if (!safeCode) return safeContent;
+
+        const isFenced = /```[\s\S]*```/.test(safeCode);
+        const fenced = isFenced ? safeCode : `\n\`\`\`\n${safeCode}\n\`\`\`\n`;
+
+        // content 뒤에 코드블록을 붙여 하나의 마크다운 문자열 완성
+        return `${safeContent}\n\n${fenced}`;
+    };
+
+    // 코드 블록 추출 함수
+    const extractCodeBlocks = (text: string) => {
+        const codeBlocks: string[] = [];
+
+        // 코드 블록을 찾아서 codeBlocks에 담고, 본문에서는 제거
+        const contentWithoutCode = text.replace(
+            /```(\w+)?\n([\s\S]*?)```/g,
+            (_, __, code) => {
+                codeBlocks.push(code.trim()); // 코드 부분만 저장
+                return ""; // 본문에서는 제거
+            }
+        );
+
+        return { codeBlocks, contentWithoutCode: contentWithoutCode.trim() };
+    };
+
+    const selectedCategory = categories.find(
+        (cat) => cat.value === formData.category
+    );
+
+    return (
+        <div className="min-h-screen bg-gray-50">
+            {/* Header */}
+            <Header pathname="/new-post" />
+
+            {/* 질문 작성 부분 */}
+            <div className="max-w-4xl mx-auto px-6 py-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-2xl font-bold text-gray-900">
+                            질문 수정
+                        </CardTitle>
+                        <p className="text-gray-600">
+                            개발 관련 질문을 작성해보세요
+                        </p>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleUpdate} className="space-y-6">
+                            {/* 제목 입력 칸 */}
+                            <div className="space-y-2">
+                                <Label
+                                    htmlFor="title"
+                                    className="text-base font-medium"
+                                >
+                                    제목
+                                </Label>
+                                <Input
+                                    id="title"
+                                    value={formData.title}
+                                    onChange={(e) =>
+                                        handleChange("title", e.target.value)
+                                    }
+                                    placeholder="질문 제목을 입력하세요"
+                                    required
+                                    className="text-base"
+                                />
+                            </div>
+
+                            {/* 카테고리 입력 칸 */}
+                            <div className="space-y-2">
+                                <Label className="text-base font-medium">
+                                    카테고리
+                                </Label>
+                                <Select
+                                    value={formData.category}
+                                    onValueChange={(value) =>
+                                        handleChange("category", value)
+                                    }
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="카테고리를 선택하세요" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {categories.map((category) => (
+                                            <SelectItem
+                                                key={category.value}
+                                                value={category.value}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <Badge
+                                                        className={
+                                                            category.color
+                                                        }
+                                                    >
+                                                        {category.label}
+                                                    </Badge>
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {selectedCategory && (
+                                    <div className="mt-2">
+                                        <Badge
+                                            className={selectedCategory.color}
+                                        >
+                                            {selectedCategory.label}
+                                        </Badge>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 내용 입력 칸 */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-base font-medium">
+                                        내용
+                                    </Label>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={insertCodeBlock}
+                                        >
+                                            <Code className="w-4 h-4 mr-1" />
+                                            코드 블록
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() =>
+                                                setIsPreview(!isPreview)
+                                            }
+                                        >
+                                            {isPreview ? (
+                                                <Edit className="w-4 h-4 mr-1" />
+                                            ) : (
+                                                <Eye className="w-4 h-4 mr-1" />
+                                            )}
+                                            {isPreview ? "편집" : "미리보기"}
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {isPreview ? (
+                                    <div className="space-y-4">
+                                        {/* 본문 */}
+                                        <div
+                                            className="min-h-[300px] p-4 border rounded-lg bg-white prose max-w-none"
+                                            dangerouslySetInnerHTML={{
+                                                __html: renderMarkdown(
+                                                    mergeContentAndCode(
+                                                        formData.content,
+                                                        formData.code
+                                                    )
+                                                ),
+                                            }}
+                                        />
+                                    </div>
+                                ) : (
+                                    <Textarea
+                                        value={
+                                            formData.content +
+                                            (formData.code
+                                                ? `\n\n\`\`\`\n${formData.code}\n\`\`\`\n`
+                                                : "")
+                                        }
+                                        onChange={(e) => {
+                                            const text = e.target.value;
+                                            // 코드 블록 추출 (``` ... ``` 부분)
+                                            const match =
+                                                text.match(/```([\s\S]*?)```/);
+                                            if (match) {
+                                                // 코드 부분
+                                                const code = match[1].trim();
+                                                // 코드 블록 제거 후 나머지 = content
+                                                const content = text
+                                                    .replace(
+                                                        /```([\s\S]*?)```/,
+                                                        ""
+                                                    )
+                                                    .trim();
+                                                setFormData((prev) => ({
+                                                    ...prev,
+                                                    content,
+                                                    code,
+                                                }));
+                                            } else {
+                                                // 코드 블록 없으면 전부 content
+                                                setFormData((prev) => ({
+                                                    ...prev,
+                                                    content: text,
+                                                    code: "",
+                                                }));
+                                            }
+                                        }}
+                                        placeholder="질문 내용을 작성하세요..."
+                                        required
+                                        className="min-h-[300px] text-base font-mono"
+                                    />
+                                )}
+
+                                <p className="text-sm text-gray-500">
+                                    마크다운 문법을 지원합니다. **굵게**,
+                                    *기울임*, `코드`, 코드 블록 등을 사용할 수
+                                    있습니다.
+                                </p>
+                            </div>
+
+                            {/* 작성/취소 버튼 */}
+                            <div className="flex gap-4 pt-4">
+                                <Button
+                                    type="submit"
+                                    className="bg-[#1976D2] hover:bg-[#005fa3] px-8 hover: cursor-pointer"
+                                    disabled={isLoading}
+                                >
+                                    {isLoading ? "작성 중..." : "질문 수정"}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    className="hover: cursor-pointer"
+                                    variant="outline"
+                                    onClick={() => window.history.back()}
+                                >
+                                    취소
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}
