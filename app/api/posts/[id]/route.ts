@@ -162,3 +162,74 @@ export async function DELETE(
         );
     }
 }
+
+// 수정 API
+export async function PUT(req: NextRequest) {
+    try {
+        // 로그인 검증
+        const userId = await getUserIdFromRequest(req);
+        if (!userId) {
+            return NextResponse.json(
+                { success: false, message: "로그인이 필요합니다." },
+                { status: 401 }
+            );
+        }
+
+        // 바디 파싱/검증
+        const body = await req.json();
+        const { id, title, content, code, category } = body ?? {};
+
+        if (!title || !content || !category) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    message: "title, content, category는 필수입니다.",
+                },
+                { status: 400 }
+            );
+        }
+
+        // 3) updatedAt 현재 시간으로 세팅
+        const now = new Date().toISOString();
+
+        // 4) UPDATE
+        const { rows } = await sql`
+        UPDATE public.post
+        SET
+            title     = ${title},
+            content   = ${content},
+            code      = ${code},
+            category  = ${category},
+            updatedat = ${now}
+        WHERE id = ${id}
+        RETURNING
+            id, title, content, code, category, updatedat;
+    `;
+
+        const r = rows[0];
+
+        return NextResponse.json(
+            {
+                success: true,
+                post: {
+                    id: r.id,
+                    authorId: r.authorid,
+                    title: r.title ?? "(제목 없음)",
+                    content: r.content ?? "",
+                    code: r.code ?? "",
+                    category: r.category ?? "기타",
+                    isAnswered: !!r.isanswered,
+                    createdAt: r.createdat?.toISOString?.() ?? r.createdat,
+                    updatedAt: r.updatedat?.toISOString?.() ?? r.updatedat,
+                },
+            },
+            { status: 201 }
+        );
+    } catch (err: any) {
+        console.error("POST /api/posts/[id] error:", err);
+        return NextResponse.json(
+            { success: false, message: err?.message ?? "SERVER_ERROR" },
+            { status: 500 }
+        );
+    }
+}

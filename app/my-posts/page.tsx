@@ -267,16 +267,24 @@ export default function MyPostsPage() {
                                         </div>
                                     </div>
                                     <div className="flex flex-col gap-2 ml-4">
-                                        <Link href={`/edit-post/${post.id}`}>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="hover:bg-gray-50 bg-transparent"
-                                            >
-                                                <Edit className="w-4 h-4 mr-1" />
-                                                수정
-                                            </Button>
-                                        </Link>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="hover:bg-gray-50 bg-transparent hover: cursor-pointer"
+                                            onClick={() => {
+                                                sessionStorage.setItem(
+                                                    `edit:${post.id}`,
+                                                    JSON.stringify(post)
+                                                ); // 전체 저장
+                                                router.push(
+                                                    `/edit-post/${post.id}`
+                                                ); // 수정 페이지로 이동
+                                            }}
+                                        >
+                                            <Edit className="w-4 h-4 mr-1" />
+                                            수정
+                                        </Button>
+
                                         <Button
                                             size="sm"
                                             variant="outline"
