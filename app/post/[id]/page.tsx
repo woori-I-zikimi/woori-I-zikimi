@@ -6,6 +6,12 @@ import { useEffect, useState, use } from "react"; // [ADD] React.use()로 params
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PasswordChangeModal } from "@/components/password-change-modal";
 import {
     MessageCircle,
@@ -39,6 +45,7 @@ type Flags = {
     likedByMe: boolean;
 };
 
+// [MOD] 이름 충돌 방지: 컴포넌트(Comment)와 겹치지 않도록 인터페이스 이름 변경
 interface CommentItem {
     id: number;
     content: string;
@@ -50,7 +57,7 @@ interface CommentItem {
     isExpanded?: boolean;
 }
 
-// params 타입을 Promise로 받고 React.use()
+// [MOD] params 타입을 Promise로 받고 React.use()로 언랩
 export default function PostDetailPage({
     params,
 }: {

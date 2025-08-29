@@ -28,7 +28,7 @@ async function getUserIdFromRequest(req: NextRequest): Promise<string | null> {
 
 export async function PUT(
     req: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: Promise<{ id: UUID }> }
 ) {
     try {
 

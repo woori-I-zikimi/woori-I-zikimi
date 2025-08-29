@@ -8,47 +8,36 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { timeAgo } from "@/lib/utils";
-import CommentLikeButton from "@/components/CommentLikeButton";
 
 import {
+
+    ThumbsUp,
     Clock,
     Reply,
     ChevronDown,
     ChevronUp,
 } from "lucide-react";
 
-import { UUID } from "crypto";
+import { useRouter } from "next/navigation";
+import { randomUUID, UUID } from "crypto";
 
 interface Comment {
     id: UUID;
-    authorid: string;
-    postId: string;
-    isAuthor: boolean;
+    authorId: string;
+    postId: UUID;
+    // isAuthor: boolean;
     content: string;
     createat: Date;
     likes: number;
-    likedByMe: boolean;
-    replies: Reply[];
-    isExpanded?: boolean;
-};
-
-type Reply = {
-  id: string;
-  authorId: string;
-  content: string;
-  createdAt: string;
-};
-
-
-interface CommentProps {
-  postId: string;
-  post_authorId: string;
-  onAdded?: () => void;
+    // replies: Comment[];
+    // isExpanded?: boolean;
 }
 
-export default function Comment({ postId, post_authorId, onAdded, }: CommentProps) {
+export default function Comment({ postId }: { postId: UUID }) {
+    const [isLiked, setIsLiked] = useState(false);
+    const [likeCount, setLikeCount] = useState(12);
     const [newComment, setNewComment] = useState("");
-    const [replyTo, setReplyTo] = useState<string | null>(null);
+    const [replyTo, setReplyTo] = useState<number | null>(null);
     const [replyContent, setReplyContent] = useState("");
     // const [comments, setComments] = useState<Comment[]>([
     //     {
@@ -79,15 +68,10 @@ export default function Comment({ postId, post_authorId, onAdded, }: CommentProp
     // 댓글 불러오기
     useEffect(() => {
         async function fetchComments() {
-            const res = await fetch(`/api/comments?postId=${postId}`, {
-                cache: "no-store",
-                credentials: "include",
-            });
+            const res = await fetch(`/api/comments?postId=${postId}`);
             console.log('댓글 조회 응답', res);
             const data = await res.json();
             if (data.success) setComments(data.comments);
-            
-            
         }
         fetchComments();
     }, [postId]);
@@ -110,45 +94,8 @@ export default function Comment({ postId, post_authorId, onAdded, }: CommentProp
             body: JSON.stringify({
                 postId: postId,
                 content: newComment,
+                authorId: '050301', // 수정필요
                 createat:new Date(),
-            }),
-        });
-
-        const data = await res.json(); // 서버는 항상 JSON으로 응답
-        if (!res.ok || !data?.success) {
-            console.error("댓글 등록 실패:", data.reply);
-            alert(data?.message ?? "댓글 등록 실패");
-            return;
-        }
-        // 서버가 돌려준 새 댓글을 목록 최상단에 추가
-        setComments((prev) => [data.comment, ...prev]);
-        setNewComment("");
-
-        onAdded?.();
-
-        } catch (err) {
-            console.error(err);
-            alert("네트워크 오류로 댓글 등록에 실패했습니다.");
-        }
-    };
-
-    // -------------------------------
-    // function : handleReplySubmit
-    // Description : 대댓글 작성 이벤트
-    // parameter : commentId
-    // -------------------------------
-    const handleReplySubmit = async (commentId: string) => {
-        if (!replyContent.trim()) return;
-
-        try {
-            const res = await fetch(`/api/comments/${commentId}/replies`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include", // same-origin이면 생략 가능
-            cache: "no-store",
-            body: JSON.stringify({
-                commentId: commentId,
-                content: replyContent
             }),
         });
 
@@ -158,23 +105,9 @@ export default function Comment({ postId, post_authorId, onAdded, }: CommentProp
             alert(data?.message ?? "댓글 등록 실패");
             return;
         }
-
-        setComments((prev) =>
-            prev.map((comment) =>
-                comment.id === commentId
-                    ? {
-                          ...comment,
-                          replies: [...comment.replies, data.reply],
-                          isExpanded: true,
-                      }
-                    : comment
-                )
-        );
-
-
-        setReplyContent("");
-        setReplyTo(null);
-
+        // 서버가 돌려준 새 댓글을 목록 최상단에 추가
+        setComments((prev) => [data.comment, ...prev]);
+        setNewComment("");
 
         } catch (err) {
             console.error(err);
@@ -182,20 +115,43 @@ export default function Comment({ postId, post_authorId, onAdded, }: CommentProp
         }
     };
 
-    // -------------------------------
-    // function : toggleReplies
-    // Description : 대댓글 토글 이벤트
-    // parameter : commentId
-    // -------------------------------
-    const toggleReplies = (commentId: UUID) => {
-        setComments((prev) =>
-            prev.map((comment) =>
-                comment.id === commentId
-                    ? { ...comment, isExpanded: !comment.isExpanded }
-                    : comment
-            )
-        );
-    };
+    // const handleReplySubmit = (commentId: UUID) => {
+    //     if (!replyContent.trim()) return;
+
+    //     const reply: Comment = {
+    //         id: '',
+    //         content: replyContent,
+    //         author: `익명${Math.floor(Math.random() * 100)}`,
+    //         isAuthor: false,
+    //         likes: 0,
+    //         replies: [],
+    //         createat: new Date()
+    //     };
+
+    //     setComments((prev) =>
+    //         prev.map((comment) =>
+    //             comment.id === commentId
+    //                 ? {
+    //                       ...comment,
+    //                     //   replies: [...comment.replies, reply],
+    //                       isExpanded: true,
+    //                   }
+    //                 : comment
+    //         )
+    //     );
+    //     setReplyContent("");
+    //     setReplyTo(null);
+    // };
+
+    // const toggleReplies = (commentId: UUID) => {
+    //     setComments((prev) =>
+    //         prev.map((comment) =>
+    //             comment.id === commentId
+    //                 ? { ...comment, isExpanded: !comment.isExpanded }
+    //                 : comment
+    //         )
+    //     );
+    // };
 
     const CommentComponent = ({
         comment,
@@ -216,7 +172,8 @@ export default function Comment({ postId, post_authorId, onAdded, }: CommentProp
                             <span className="font-medium text-gray-900">
                                 익명
                             </span>
-                            {post_authorId === comment.authorid && (
+                            {/*여기 바꿔야 함!!!!!!! 로그인한 사람 === post의 authorId */}
+                            {comment.authorId === '050301' && (
                                 <Badge className="bg-[#1976D2] text-white text-xs">
                                     작성자
                                 </Badge>
@@ -229,12 +186,15 @@ export default function Comment({ postId, post_authorId, onAdded, }: CommentProp
                     </div>
                     <p className="text-gray-700 mb-3">{comment.content}</p>
                     <div className="flex items-center gap-4">
-                        <CommentLikeButton
-                            commentId={String(comment.id)}
-                            initialLikes={comment.likes}
-                            initialLikedByMe={comment.likedByMe}
-                        />
-                        {!isReply && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-gray-500 hover:text-[#1976D2]"
+                        >
+                            <ThumbsUp className="w-4 h-4 mr-1" />
+                            {comment.likes}
+                        </Button>
+                        {/* {!isReply && (
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -250,13 +210,13 @@ export default function Comment({ postId, post_authorId, onAdded, }: CommentProp
                                 <Reply className="w-4 h-4 mr-1" />
                                 답글
                             </Button>
-                        )}
+                        )} */}
                     </div>
                 </CardContent>
             </Card>
 
             {/* Reply Form */}
-            {replyTo === comment.id && (
+            {/* {replyTo === comment.id && (
                 <div className="ml-8 mb-4">
                     <div className="flex gap-2">
                         <Textarea
@@ -284,10 +244,10 @@ export default function Comment({ postId, post_authorId, onAdded, }: CommentProp
                         </div>
                     </div>
                 </div>
-            )}
+            )} */}
 
             {/* Replies */}
-            {comment.replies.length > 0 && (
+            {/* {comment.replies.length > 0 && (
                 <div className="ml-4">
                     <Button
                         variant="ghost"
@@ -307,30 +267,16 @@ export default function Comment({ postId, post_authorId, onAdded, }: CommentProp
                             </>
                         )}
                     </Button>
-                     {comment.isExpanded &&
+                    {comment.isExpanded &&
                         comment.replies.map((reply) => (
-                            <div key={reply.id} className="ml-8 border-l-2 border-gray-200 pl-4">
-                            <Card className="mb-3">
-                                <CardContent className="p-4">
-                                <div className="flex items-start justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                    <span className="font-medium text-gray-900">익명</span>
-                                    {post_authorId === reply.authorId && (
-                                        <Badge className="bg-[#1976D2] text-white text-xs">작성자</Badge>
-                                    )}
-                                    </div>
-                                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                                    <Clock className="w-3 h-3" />
-                                    <span>{timeAgo(reply.createdAt)}</span>
-                                    </div>
-                                </div>
-                                <p className="text-gray-700">{reply.content}</p>
-                                </CardContent>
-                            </Card>
-                            </div>
+                            <CommentComponent
+                                key={reply.id}
+                                comment={reply}
+                                isReply={true}
+                            />
                         ))}
                 </div>
-            )}
+            )} */}
         </div>
     );
 
