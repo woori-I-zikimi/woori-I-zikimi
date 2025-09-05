@@ -8,8 +8,8 @@ import p5 from "p5";
 
 import { bubbleColors } from "./bubbleColors";
 import { Question, Comment } from "./types";
-import { parseQuestionText } from "./utils";
-import BubbleCanvas from "./BubbleCanvas";
+import { parseQuestionText } from "./util"; 
+import BubbleCanvas from "./BubbleCanvas"; 
 import QuestionModal from "./QuestionModal";
 
 export default function QuestionBoard() {
