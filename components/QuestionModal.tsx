@@ -1,8 +1,8 @@
+// QuestionModal.tsx
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { X, Send } from "lucide-react";
+import { X } from "lucide-react";
 import { Question } from "./types";
 import { parseQuestionText } from "./util";
 import CommentList from "./CommentList";
@@ -23,15 +23,25 @@ export default function QuestionModal({
   setNewComment,
   handleAddComment,
 }: QuestionModalProps) {
+  const displayDate = (() => {
+    const raw =
+      (selectedQuestion as any).createdAt ?? (selectedQuestion as any).timestamp;
+    if (!raw) return null;
+    return raw instanceof Date ? raw : new Date(raw);
+  })();
+
   return (
+    // 바깥 overlay (풍선 색상 반투명)
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: selectedQuestion.color }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) setSelectedQuestion(null);
-      }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      style={{ backgroundColor: `${selectedQuestion.color}CC` }} // CC = 약간 투명(hex alpha)
+      onClick={() => setSelectedQuestion(null)} // 바깥 클릭 → 닫기
     >
-      <div className="bg-white/95 backdrop-blur-sm rounded-3xl w-full max-w-6xl h-[80vh] shadow-2xl flex overflow-hidden">
+      {/* 모달 본체 */}
+      <div
+        className="bg-white/95 backdrop-blur-sm rounded-3xl w-full max-w-6xl h-[80vh] shadow-2xl flex overflow-hidden"
+        onClick={(e) => e.stopPropagation()} // 내부 클릭은 전파 차단
+      >
         {/* 질문 영역 */}
         <div className="flex-1 p-8 overflow-y-auto">
           {/* header */}
@@ -41,9 +51,11 @@ export default function QuestionModal({
                 className="w-8 h-8 rounded-full mb-4"
                 style={{ backgroundColor: selectedQuestion.color }}
               />
-              <p className="text-sm text-gray-500 mb-2">
-                {selectedQuestion.timestamp.toLocaleString("ko-KR")}
-              </p>
+              {displayDate && (
+                <p className="text-sm text-gray-500 mb-2">
+                  {displayDate.toLocaleString("ko-KR")}
+                </p>
+              )}
             </div>
             <Button
               variant="ghost"
