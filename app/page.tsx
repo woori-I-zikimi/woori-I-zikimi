@@ -1,10 +1,5 @@
 import React from "react";
-import dynamic from "next/dynamic";
-
-// Firebase를 참조하는 클라이언트 컴포넌트
-const QuestionBoard = dynamic(() => import("@/components/QuestionBoard"), {
-    ssr: false, // 🚫 서버사이드 렌더링 금지
-});
+import QuestionBoard from "@/components/QuestionBoard";
 
 export default function Page() {
     return (
