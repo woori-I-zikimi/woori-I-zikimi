@@ -1,6 +1,6 @@
 // types.ts
 
-export type ID = string | number;
+export type ID = string;
 
 export interface Comment {
     id: ID; // 댓글 고유 식별자
@@ -10,11 +10,10 @@ export interface Comment {
     timestamp?: Date; // 예전 코드에서 쓰던 필드 → 하위호환용으로 남겨둔 옵션
 }
 
-// types.ts
 export interface Question {
     id: string;
-    title: string; // ✅ 제목
-    content: string; // ✅ 내용
+    title: string; // 제목
+    content: string; // 내용
     color: string;
     createdAt: Date | null;
     commentsCount: number;
@@ -27,11 +26,12 @@ export interface Question {
     radius?: number;
     mass?: number;
 
-    // comments: Comment[];
+    comments: Comment[];
 
     // 하위호환: 옛 문서가 text만 있을 수 있어 남겨둠(읽기용 보정에서 사용)
     text?: string;
     timestamp?: Date;
+    acceptedCommentId?: string | null;
 }
 
 // 버블 렌더 전용 파생 타입 (물리값만 추가)

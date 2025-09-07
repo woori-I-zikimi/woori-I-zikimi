@@ -1,14 +1,19 @@
 // CommentList.tsx
 "use client";
 
+import AcceptButton from "./AcceptButton";
 import { Comment } from "./types";
 
 export default function CommentList({
   comments,
   color,
+  question,
+  onToggleAccept,
 }: {
   comments: Comment[];
   color: string;
+  question: { id: string; acceptedCommentId?: string | null };
+  onToggleAccept: (commentId: string) => void;
 }) {
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -21,6 +26,7 @@ export default function CommentList({
         comments.map((comment) => {
           const raw = (comment as any).createdAt ?? (comment as any).timestamp;
           const date = raw ? (raw instanceof Date ? raw : new Date(raw)) : null;
+          const accepted = question.acceptedCommentId === comment.id;
 
           return (
             <div key={comment.id} className="bg-gray-50 rounded-2xl p-4">
@@ -32,13 +38,17 @@ export default function CommentList({
                 <span className="text-sm font-medium text-gray-700">
                   {comment.author}
                 </span>
-                {date && (
-                  <span className="text-xs text-gray-500">
-                    {date.toLocaleString("ko-KR")}
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                {/* 채택 버튼 */}
+                <AcceptButton
+                  accepted={accepted}
+                  onClick={() => onToggleAccept(comment.id)}
+                />
+              </div>
               </div>
               <p className="text-gray-800">{comment.text}</p>
+              
+
             </div>
           );
         })
