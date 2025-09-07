@@ -111,10 +111,10 @@ export default function BubbleCanvas({
         H = 0;
 
       // 물리 상수
-      const buoyancy = -0.055; // 음수 = 위로 뜸
-      const friction = 0.985; // 공기 저항
-      const bounce = 0.72; // 벽 충돌 반발력
-      const collisionDamping = 0.96; // 풍선끼리 충돌 시 감쇠
+      const buoyancy = -0.14; // 음수 = 위로 뜸
+      const friction = 0.994; // 공기 저항
+      const bounce = 0.30; // 벽 충돌 반발력
+      const collisionDamping = 0.97; // 풍선끼리 충돌 시 감쇠
 
       const ASPECT_X = 1.0;
       const ASPECT_Y = 1.12;

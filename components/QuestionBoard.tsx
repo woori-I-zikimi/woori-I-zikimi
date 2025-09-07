@@ -22,21 +22,17 @@ export default function QuestionBoard() {
     const uid = () => Math.random().toString(36).slice(2, 10);
 
     // 풍선 생성 위치
-    const initialPosFor = (count: number) => {
-        const col = count % 4;
-        const screenW =
-            typeof window !== "undefined" ? window.innerWidth : 1200;
-        const screenH =
-            typeof window !== "undefined" ? window.innerHeight : 800;
+    const initialPosFor = () => {
+        const screenW = typeof window !== "undefined" ? window.innerWidth : 1200;
+        const screenH = typeof window !== "undefined" ? window.innerHeight : 800;
 
-        const x = (col + 1) * (screenW / 5);
-
-        // 화면 전체 높이 기준으로 footer 바로 위쪽에서 시작
-        const bottomBandTop = screenH - 80;
-        const y = screenH - 160 + Math.random() * 50;
+        const margin = 40; // 좌우 안전 여백
+        const x = Math.random() * (screenW - margin * 2) + margin; // 좌우 전체 랜덤
+        const y = screenH - 150 + Math.random() * 40;               // 화면 아래쪽에서 살짝 랜덤
 
         return { x, y };
     };
+
 
     const handleSubmit = (e?: React.FormEvent) => {
         if (e) e.preventDefault();
@@ -52,7 +48,7 @@ export default function QuestionBoard() {
             bubbleColors[Math.floor(Math.random() * bubbleColors.length)];
         const { x, y } =
             typeof window !== "undefined"
-                ? initialPosFor(questions.length)
+                ? initialPosFor()
                 : { x: 200, y: 500 };
 
         // ⬆️ 초기 속도를 위쪽(음수)로 조금 부여해서 “툭- 떠오르는” 느낌
