@@ -1,6 +1,6 @@
 "use client";
 
-import { db, ensureAnonSignIn } from "./firebase";
+import { db, ensureAnonSignIn } from "./firebaseClient";
 import { doc, runTransaction, getDoc } from "firebase/firestore";
 
 // 채택 토글: 이미 채택된 댓글이면 해제, 아니면 해당 cid로 채택

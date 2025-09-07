@@ -4,7 +4,7 @@
 import AcceptButton from "./AcceptButton";
 import { Comment, Question } from "./types";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "@/lib/firebase";
+import { auth } from "@/lib/firebaseClient";
 
 export default function CommentList({
     comments,

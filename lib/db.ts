@@ -12,7 +12,7 @@ import {
     serverTimestamp,
     updateDoc,
 } from "firebase/firestore";
-import { db, ensureAnonSignIn } from "./firebase";
+import { db, ensureAnonSignIn } from "./firebaseClient";
 
 // === Questions ===
 export async function addQuestion({

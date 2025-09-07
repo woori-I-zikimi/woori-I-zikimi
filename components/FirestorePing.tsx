@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { db } from "@/lib/firebase";
+import { db } from "@/lib/firebaseClient";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 export default function FirestorePing() {
