@@ -14,6 +14,8 @@ interface QuestionModalProps {
   newComment: string;
   setNewComment: (val: string) => void;
   handleAddComment: (e: React.FormEvent) => void;
+   // 🔽 추가: 채택 토글 핸들러
+  onToggleAccept: (commentId: string) => void;
 }
 
 export default function QuestionModal({
@@ -22,6 +24,7 @@ export default function QuestionModal({
   newComment,
   setNewComment,
   handleAddComment,
+  onToggleAccept, // 🔽
 }: QuestionModalProps) {
   const displayDate = (() => {
     const raw =
@@ -87,6 +90,8 @@ export default function QuestionModal({
           <CommentList
             comments={selectedQuestion.comments}
             color={selectedQuestion.color}
+             question={selectedQuestion}                 // 🔽 질문 상태 전달
+            onToggleAccept={onToggleAccept}             // 🔽 클릭 핸들러 전달
           />
           <CommentForm
             newComment={newComment}

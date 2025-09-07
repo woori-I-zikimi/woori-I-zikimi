@@ -1,6 +1,6 @@
 // types.ts
 
-export type ID = string | number;
+export type ID = string;
 
 export interface Comment {
   id: ID;
@@ -37,4 +37,5 @@ export interface Question {
   createdAt: Date;
   /** 하위호환: 기존 컴포넌트에서 참조 중이면 일단 유지 */
   timestamp?: Date;
+  acceptedCommentId?: string | null;
 }
