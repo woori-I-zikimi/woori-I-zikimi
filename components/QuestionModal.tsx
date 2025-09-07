@@ -3,18 +3,11 @@
 import { useEffect, useState } from "react";
 import type { Comment, Question } from "./types";
 import { X } from "lucide-react";
-import { getQuestion } from "@/lib/db";
+import { getQuestion, addComment, listenComments } from "@/lib/db";
+import CommentList from "./CommentList";
+import CommentForm from "./CommentForm";
 
-export default function QuestionModal({
-    question,
-    onClose,
-    selectedQuestion,
-    setSelectedQuestion,
-    newComment,
-    setNewComment,
-    handleAddComment,
-    onToggleAccept, // 🔽   
-}: {
+interface QuestionModalProps {
     question: Question;
     onClose: () => void;
     selectedQuestion: Question;
@@ -24,12 +17,23 @@ export default function QuestionModal({
     handleAddComment: (e: React.FormEvent) => void;
     // 🔽 추가: 채택 토글 핸들러
     onToggleAccept: (commentId: string) => void;
-}) {
+}
+
+export default function QuestionModal({
+    question,
+    onClose,
+    selectedQuestion,
+    setSelectedQuestion,
+    newComment,
+    setNewComment,
+    handleAddComment,
+    onToggleAccept, // 🔽
+}: QuestionModalProps) {
     const [data, setData] = useState<Question | null>(null);
     const [comments, setComments] = useState<Comment[]>([]);
     const [text, setText] = useState("");
     const [sending, setSending] = useState(false);
-    
+
     // 1) 부모로부터 받은 question으로 먼저 채우고,
     // 2) getQuestion으로 최신화(딥링크/새로고침 대비)
     useEffect(() => {
@@ -61,28 +65,6 @@ export default function QuestionModal({
         });
         return () => unsub();
     }, [question?.id]);
-
-    // 댓글 추가
-    async function handleAddComment(e: React.FormEvent) {
-        e.preventDefault();
-        const value = text.trim();
-        if (!value || !question?.id) return;
-        try {
-            setSending(true);
-            await addComment(String(question.id), { text: value });
-            setText("");
-            // 로컬 카운트도 즉시 +1 (서버에서는 increment로 반영됨)
-            setData((prev) =>
-                prev
-                    ? { ...prev, commentsCount: (prev.commentsCount ?? 0) + 1 }
-                    : prev
-            );
-        } catch (e) {
-            console.error("[QuestionModal] addComment error:", e);
-        } finally {
-            setSending(false);
-        }
-    }
 
     // 날짜 표시
     const displayDate = (() => {
@@ -142,6 +124,22 @@ export default function QuestionModal({
 
                 {/* 댓글 영역 */}
                 <div className="w-96 border-l border-gray-200 flex flex-col">
+                    <CommentList
+                        comments={selectedQuestion.comments}
+                        color={selectedQuestion.color}
+                        question={selectedQuestion} // 🔽 질문 상태 전달
+                        onToggleAccept={onToggleAccept} // 🔽 클릭 핸들러 전달
+                    />
+                    <CommentForm
+                        newComment={newComment}
+                        setNewComment={setNewComment}
+                        handleAddComment={handleAddComment}
+                        color={selectedQuestion.color}
+                    />
+                </div>
+
+                {/* 댓글 영역 */}
+                {/* <div className="w-96 border-l border-gray-200 flex flex-col">
                     <div className="p-4 border-b border-gray-200 flex justify-between items-center">
                         <h4 className="font-semibold text-gray-700">댓글</h4>
                         <span className="text-sm text-gray-500">
@@ -172,7 +170,7 @@ export default function QuestionModal({
                     </div>
 
                     <form
-                        // onSubmit={handleAddComment}
+                        onSubmit={handleAddComment}
                         className="p-4 border-t border-gray-200 flex gap-2"
                     >
                         <input
@@ -188,23 +186,8 @@ export default function QuestionModal({
                             {sending ? "등록중..." : "등록"}
                         </button>
                     </form>
-                </div>
+                </div> */}
             </div>
-        
-        {/* 댓글 영역 */}
-<!--         <div className="w-96 border-l border-gray-200 flex flex-col">
-          <CommentList
-            comments={selectedQuestion.comments}
-            color={selectedQuestion.color}
-            question={selectedQuestion}                 // 🔽 질문 상태 전달
-            onToggleAccept={onToggleAccept}             // 🔽 클릭 핸들러 전달
-          />
-          <CommentForm
-            newComment={newComment}
-            setNewComment={setNewComment}
-            handleAddComment={handleAddComment}
-            color={selectedQuestion.color}
-          />
-        </div> -->
+        </div>
     );
 }

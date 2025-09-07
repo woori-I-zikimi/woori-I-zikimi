@@ -1,6 +1,12 @@
 "use client";
 
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
+import {
+    getAuth,
+    signInAnonymously,
+    setPersistence,
+    browserLocalPersistence,
+} from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -19,4 +25,17 @@ if (!getApps().length) {
     app = getApps()[0]!;
 }
 
+export const auth = getAuth(app);
 export const db = getFirestore(app);
+
+// 익명 로그인 보장 유틸
+export async function ensureAnonSignIn(): Promise<string> {
+    if (typeof window === "undefined") {
+        throw new Error("ensureAnonSignIn must run on client.");
+    }
+    await setPersistence(auth, browserLocalPersistence);
+    if (!auth.currentUser) {
+        await signInAnonymously(auth); // 화면 없이 조용히 로그인
+    }
+    return auth.currentUser!.uid;
+}

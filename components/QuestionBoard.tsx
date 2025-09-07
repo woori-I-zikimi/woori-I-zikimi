@@ -138,32 +138,37 @@ export default function QuestionBoard() {
 
         setNewComment("");
     };
+
     // 🔽 채택 토글 핸들러 (로컬 상태만 갱신)
-  const handleToggleAccept = (commentId: string) => {
-    if (!selectedQuestion) return;
+    const handleToggleAccept = (commentId: string) => {
+        if (!selectedQuestion) return;
 
-    setQuestions((prev) =>
-      prev.map((q) =>
-        q.id === selectedQuestion.id
-          ? {
-              ...q,
-              acceptedCommentId:
-                q.acceptedCommentId === commentId ? null : commentId,
-            }
-          : q
-      )
-    );
+        setQuestions((prev) =>
+            prev.map((q) =>
+                q.id === selectedQuestion.id
+                    ? {
+                          ...q,
+                          acceptedCommentId:
+                              q.acceptedCommentId === commentId
+                                  ? null
+                                  : commentId,
+                      }
+                    : q
+            )
+        );
 
-    setSelectedQuestion((prev) =>
-      prev
-        ? {
-            ...prev,
-            acceptedCommentId:
-              prev.acceptedCommentId === commentId ? null : commentId,
-          }
-        : prev
-    );
-  };
+        setSelectedQuestion((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      acceptedCommentId:
+                          prev.acceptedCommentId === commentId
+                              ? null
+                              : commentId,
+                  }
+                : prev
+        );
+    };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter") {
@@ -235,7 +240,6 @@ export default function QuestionBoard() {
                     newComment={newComment}
                     setNewComment={setNewComment}
                     handleAddComment={handleAddComment}
-                  
                     // 🔽 채택 핸들러 전달
                     onToggleAccept={handleToggleAccept}
                 />
