@@ -2,7 +2,9 @@
 "use client";
 
 import AcceptButton from "./AcceptButton";
-import { Comment } from "./types";
+import { Comment, Question } from "./types";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "@/lib/firebase";
 
 export default function CommentList({
     comments,
@@ -12,7 +14,7 @@ export default function CommentList({
 }: {
     comments: Comment[];
     color: string;
-    question: { id: string; acceptedCommentId?: string | null };
+    question: Question;
     onToggleAccept: (commentId: string) => void;
 }) {
     return (
@@ -33,29 +35,29 @@ export default function CommentList({
                             : new Date(raw)
                         : null;
                     const accepted = question.acceptedCommentId === comment.id;
+                    const [user] = useAuthState(auth);
+                    const isAuthor =
+                        user?.uid && user.uid === question.authorUid;
 
                     return (
                         <div
                             key={comment.id}
                             className="bg-gray-50 rounded-2xl p-4"
                         >
-                            <div className="flex items-center gap-2 mb-2">
-                                <div
-                                    className="w-6 h-6 rounded-full"
-                                    style={{ backgroundColor: color }}
-                                />
-                                <span className="text-sm font-medium text-gray-700">
-                                    익명
-                                </span>
-                                <div className="flex items-center gap-2">
-                                    {/* 채택 버튼 */}
+                            <div className="flex items-center gap-2">
+                                {/* (여기에 너의 LikeButton 유지 가능) */}
+                                {isAuthor && (
                                     <AcceptButton
+                                        questionId={question.id}
+                                        commentId={comment.id}
                                         accepted={accepted}
-                                        onClick={() =>
-                                            onToggleAccept(comment.id)
-                                        }
                                     />
-                                </div>
+                                )}
+                                {!isAuthor && accepted && (
+                                    <span className="px-2 py-0.5 text-xs rounded-full bg-emerald-50 text-emerald-700">
+                                        채택된 댓글
+                                    </span>
+                                )}
                             </div>
                             <p className="text-gray-800">{comment.text}</p>
                         </div>
