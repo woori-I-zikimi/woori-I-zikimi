@@ -1,8 +1,9 @@
 export const bubbleColors = [
-  "#15803d",
-  "#f59e0b",
-  "#3b82f6",
-  "#ef4444",
-  "#8b5cf6",
-  "#06b6d4",
+    "#56b87a",
+    "#f1b959",
+    "#6696e5",
+    "#e87171",
+    "#9c7aea",
+    "#4dbccf",
+    "#e6aaa2",
 ] as const;
