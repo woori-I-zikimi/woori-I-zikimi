@@ -1,4 +1,3 @@
-// CommentList.tsx
 "use client";
 
 import AcceptButton from "./AcceptButton";
@@ -17,6 +16,10 @@ export default function CommentList({
     question: Question;
     onToggleAccept: (commentId: string) => void;
 }) {
+    // ✅ 훅은 최상단에서 한 번만
+    const [user] = useAuthState(auth);
+    const isAuthor = !!user?.uid && user.uid === question.authorUid;
+
     return (
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
             {comments.length === 0 ? (
@@ -35,9 +38,6 @@ export default function CommentList({
                             : new Date(raw)
                         : null;
                     const accepted = question.acceptedCommentId === comment.id;
-                    const [user] = useAuthState(auth);
-                    const isAuthor =
-                        user?.uid && user.uid === question.authorUid;
 
                     return (
                         <div
@@ -45,7 +45,6 @@ export default function CommentList({
                             className="bg-gray-50 rounded-2xl p-4"
                         >
                             <div className="flex items-center gap-2">
-                                {/* (여기에 너의 LikeButton 유지 가능) */}
                                 {isAuthor && (
                                     <AcceptButton
                                         questionId={question.id}
@@ -59,6 +58,14 @@ export default function CommentList({
                                     </span>
                                 )}
                             </div>
+
+                            {/* 날짜 표시는 필요시 노출 */}
+                            {/* {date && (
+                <div className="text-xs text-gray-400 mb-1">
+                  {date.toLocaleString("ko-KR")}
+                </div>
+              )} */}
+
                             <p className="text-gray-800">{comment.text}</p>
                         </div>
                     );

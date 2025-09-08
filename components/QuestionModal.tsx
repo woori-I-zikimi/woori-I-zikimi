@@ -125,7 +125,7 @@ export default function QuestionModal({
                 {/* 댓글 영역 */}
                 <div className="w-96 border-l border-gray-200 flex flex-col">
                     <CommentList
-                        comments={selectedQuestion.comments ? selectedQuestion.comments : []}
+                        comments={comments}
                         color={selectedQuestion.color}
                         question={selectedQuestion} // 🔽 질문 상태 전달
                         onToggleAccept={onToggleAccept} // 🔽 클릭 핸들러 전달
