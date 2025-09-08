@@ -100,46 +100,56 @@ export async function getQuestion(id: string) {
 }
 
 // === Comments === (그대로 사용)
-export async function addComment(
-    questionId: string,
-    { text }: { text: string }
-) {
-    try {
-        const commentsCol = collection(db, "questions", questionId, "comments");
-        await addDoc(commentsCol, { text, createdAt: serverTimestamp() });
-        await updateDoc(doc(db, "questions", questionId), {
-            commentsCount: increment(1),
-        });
-    } catch (e: any) {
-        console.error("[addComment] FirebaseError:", e?.code, e?.message);
-        throw e;
-    }
+// 댓글 추가
+export async function addComment(questionId: string, text: string) {
+  const ref = collection(db, "questions", questionId, "comments");
+  await addDoc(ref, {
+    text,
+    author: "익명", // 필요하다면 사용자 정보 넣기
+    createdAt: serverTimestamp(),
+    adopt: false,
+  });
 }
 
-export function listenComments(questionId: string, cb: (docs: any[]) => void) {
-    const q = query(
-        collection(db, "questions", questionId, "comments"),
-        orderBy("createdAt", "asc")
-    );
-    return onSnapshot(
-        q,
-        (snap) => {
-            const items = snap.docs.map((d) => {
-                const data = d.data() as any;
-                return {
-                    id: d.id,
-                    text: data.text,
-                    createdAt: data.createdAt?.toDate?.() ?? null,
-                };
-            });
-            cb(items);
-        },
-        (e) => {
-            console.error(
-                "[listenComments] FirebaseError:",
-                (e as any)?.code,
-                (e as any)?.message
-            );
-        }
-    );
+
+// 댓글 구독 (이미 있으심)
+export function listenComments(questionId: string, callback: (items: any[]) => void) {
+  const ref = collection(db, "questions", questionId, "comments");
+  const q = query(ref, orderBy("createdAt", "asc"));
+  return onSnapshot(q, (snap) => {
+    const items = snap.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+      createdAt: d.data().createdAt?.toDate?.() ?? null,
+    }));
+    callback(items);
+  });
 }
+
+// export function listenComments(questionId: string, cb: (docs: any[]) => void) {
+//     const q = query(
+//         collection(db, "questions", questionId, "comments"),
+//         orderBy("createdAt", "asc")
+//     );
+//     return onSnapshot(
+//         q,
+//         (snap) => {
+//             const items = snap.docs.map((d) => {
+//                 const data = d.data() as any;
+//                 return {
+//                     id: d.id,
+//                     text: data.text,
+//                     createdAt: data.createdAt?.toDate?.() ?? null,
+//                 };
+//             });
+//             cb(items);
+//         },
+//         (e) => {
+//             console.error(
+//                 "[listenComments] FirebaseError:",
+//                 (e as any)?.code,
+//                 (e as any)?.message
+//             );
+//         }
+//     );
+// }
