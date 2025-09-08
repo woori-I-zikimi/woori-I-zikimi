@@ -1,49 +1,62 @@
-// QuestionBoard.tsx
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Send } from "lucide-react";
 import { bubbleColors } from "./bubbleColors";
 import { Question, Comment } from "./types";
 import { parseQuestionText } from "./util";
 import BubbleCanvas from "./BubbleCanvas";
 import QuestionModal from "./QuestionModal";
+import { addQuestion, listenQuestions } from "@/lib/db";
 
 export default function QuestionBoard() {
-    const [questions, setQuestions] = useState<Question[]>([]);
-    const [newQuestion, setNewQuestion] = useState("");
+    const [questions, setQuestions] = useState<Question[]>([]); // 현재 보드에 떠 있는 모든 질문
+    const [newQuestion, setNewQuestion] = useState(""); // 입력 중인 질문 텍스트
     const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(
         null
-    );
-    const [newComment, setNewComment] = useState("");
-    const [inputRows, setInputRows] = useState(1);
-    const inputRef = useRef<HTMLTextAreaElement>(null);
+    ); // 모달에 열려 있는 현재 선택 질문
+    const [newComment, setNewComment] = useState(""); // 모달에서 입력 중인 댓글 텍스트
+    const [inputRows, setInputRows] = useState(1); // textarea 높이(줄 수) 자동 조절
+    const inputRef = useRef<HTMLTextAreaElement>(null); // 제출 후 포커스 유지
 
     const uid = () => Math.random().toString(36).slice(2, 10);
 
+    // Firestore: questions 실시간 구독
+    useEffect(() => {
+        const unsubscribe = listenQuestions((items) => {
+            // db.ts에서 toDate() 변환까지 끝난 객체 배열이 넘어옴
+            setQuestions(items as Question[]);
+        });
+        return () => unsubscribe();
+    }, []);
+
     // 풍선 생성 위치
     const initialPosFor = () => {
-        const screenW = typeof window !== "undefined" ? window.innerWidth : 1200;
-        const screenH = typeof window !== "undefined" ? window.innerHeight : 800;
+        const screenW =
+            typeof window !== "undefined" ? window.innerWidth : 1200;
+        const screenH =
+            typeof window !== "undefined" ? window.innerHeight : 800;
 
         const margin = 40; // 좌우 안전 여백
         const x = Math.random() * (screenW - margin * 2) + margin; // 좌우 전체 랜덤
-        const y = screenH - 150 + Math.random() * 40;               // 화면 아래쪽에서 살짝 랜덤
+        const y = screenH - 150 + Math.random() * 40; // 화면 아래쪽에서 살짝 랜덤
 
         return { x, y };
     };
 
-
-    const handleSubmit = (e?: React.FormEvent) => {
+    // 질문 등록
+    const handleSubmit = async (e?: React.FormEvent) => {
         if (e) e.preventDefault();
 
         const raw = newQuestion.trim();
         if (!raw) return;
 
+        // parseQuestionText로 제목/본문 분리(없으면 첫 줄을 제목)
         const { title = "", body = "" } = parseQuestionText
             ? parseQuestionText(raw)
             : { title: raw, body: "" };
 
+        // 색상 랜덤 선택
         const color =
             bubbleColors[Math.floor(Math.random() * bubbleColors.length)];
         const { x, y } =
@@ -54,6 +67,24 @@ export default function QuestionBoard() {
         // ⬆️ 초기 속도를 위쪽(음수)로 조금 부여해서 “툭- 떠오르는” 느낌
         const initialVy = -1.1 - Math.random() * 0.6;
         const initialVx = (Math.random() - 0.5) * 0.4;
+
+        try {
+            // Firestore에 질문 저장
+            await addQuestion({
+                title: title || raw.split("\n")[0],
+                content: body || raw,
+                color,
+            });
+
+            // 구독으로 자동 반영되므로 로컬 prepend는 하지 않음
+            setNewQuestion("");
+            setInputRows(1);
+            requestAnimationFrame(() => inputRef.current?.focus());
+
+            console.log("질문 등록 성공");
+        } catch (err) {
+            console.error("[handleSubmit] addQuestion failed:", err);
+        }
 
         const q: Question = {
             id: uid(),
@@ -72,11 +103,13 @@ export default function QuestionBoard() {
             acceptedCommentId: null, // 🔽 초기값
         } as unknown as Question;
 
-        setQuestions((prev) => [q, ...prev]);
-        setNewQuestion("");
-        setInputRows(1);
+        // // textarea 초기화 및 한 줄로 축소
+        // setQuestions((prev) => [q, ...prev]);
+        // setNewQuestion("");
+        // setInputRows(1);
 
-        requestAnimationFrame(() => inputRef.current?.focus());
+        // // requestAnimationFrame 후 다시 포커스로 UX 유지
+        // requestAnimationFrame(() => inputRef.current?.focus());
     };
 
     const handleAddComment = (e: React.FormEvent) => {
@@ -105,32 +138,37 @@ export default function QuestionBoard() {
 
         setNewComment("");
     };
+
     // 🔽 채택 토글 핸들러 (로컬 상태만 갱신)
-  const handleToggleAccept = (commentId: string) => {
-    if (!selectedQuestion) return;
+    const handleToggleAccept = (commentId: string) => {
+        if (!selectedQuestion) return;
 
-    setQuestions((prev) =>
-      prev.map((q) =>
-        q.id === selectedQuestion.id
-          ? {
-              ...q,
-              acceptedCommentId:
-                q.acceptedCommentId === commentId ? null : commentId,
-            }
-          : q
-      )
-    );
+        setQuestions((prev) =>
+            prev.map((q) =>
+                q.id === selectedQuestion.id
+                    ? {
+                          ...q,
+                          acceptedCommentId:
+                              q.acceptedCommentId === commentId
+                                  ? null
+                                  : commentId,
+                      }
+                    : q
+            )
+        );
 
-    setSelectedQuestion((prev) =>
-      prev
-        ? {
-            ...prev,
-            acceptedCommentId:
-              prev.acceptedCommentId === commentId ? null : commentId,
-          }
-        : prev
-    );
-  };
+        setSelectedQuestion((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      acceptedCommentId:
+                          prev.acceptedCommentId === commentId
+                              ? null
+                              : commentId,
+                  }
+                : prev
+        );
+    };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter") {
@@ -195,6 +233,8 @@ export default function QuestionBoard() {
             {/* 질문 모달 */}
             {selectedQuestion && (
                 <QuestionModal
+                    question={selectedQuestion}
+                    onClose={() => setSelectedQuestion(null)}
                     selectedQuestion={selectedQuestion}
                     setSelectedQuestion={setSelectedQuestion}
                     newComment={newComment}
