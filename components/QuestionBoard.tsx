@@ -112,32 +112,32 @@ export default function QuestionBoard() {
         // requestAnimationFrame(() => inputRef.current?.focus());
     };
 
-    const handleAddComment = (e: React.FormEvent) => {
-        e.preventDefault();
-        const txt = newComment.trim();
-        if (!txt || !selectedQuestion) return;
+    // const handleAddComment = (e: React.FormEvent) => {
+    //     e.preventDefault();
+    //     const txt = newComment.trim();
+    //     if (!txt || !selectedQuestion) return;
 
-        const cmt: Comment = {
-            id: uid(),
-            text: txt,
-            author: "익명",
-            timestamp: new Date(),
-        } as unknown as Comment;
+    //     const cmt: Comment = {
+    //         id: uid(),
+    //         text: txt,
+    //         author: "익명",
+    //         timestamp: new Date(),
+    //     } as unknown as Comment;
 
-        setQuestions((prev) =>
-            prev.map((q) =>
-                q.id === selectedQuestion.id
-                    ? { ...q, comments: [...(q.comments ?? []), cmt] }
-                    : q
-            )
-        );
+    //     setQuestions((prev) =>
+    //         prev.map((q) =>
+    //             q.id === selectedQuestion.id
+    //                 ? { ...q, comments: [...(q.comments ?? []), cmt] }
+    //                 : q
+    //         )
+    //     );
 
-        setSelectedQuestion((prev) =>
-            prev ? { ...prev, comments: [...(prev.comments ?? []), cmt] } : prev
-        );
+    //     setSelectedQuestion((prev) =>
+    //         prev ? { ...prev, comments: [...(prev.comments ?? []), cmt] } : prev
+    //     );
 
-        setNewComment("");
-    };
+    //     setNewComment("");
+    // };
 
     // 🔽 채택 토글 핸들러 (로컬 상태만 갱신)
     const handleToggleAccept = (commentId: string) => {
@@ -239,8 +239,6 @@ export default function QuestionBoard() {
                     setSelectedQuestion={setSelectedQuestion}
                     newComment={newComment}
                     setNewComment={setNewComment}
-                    handleAddComment={handleAddComment}
-                    // 🔽 채택 핸들러 전달
                     onToggleAccept={handleToggleAccept}
                 />
             )}
