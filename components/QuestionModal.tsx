@@ -14,7 +14,7 @@ interface QuestionModalProps {
     setSelectedQuestion: (q: Question | null) => void;
     newComment: string;
     setNewComment: (val: string) => void;
-    handleAddComment: (e: React.FormEvent) => void;
+    // handleAddComment: (e: React.FormEvent) => void;
     // 🔽 추가: 채택 토글 핸들러
     onToggleAccept: (commentId: string) => void;
 }
@@ -26,7 +26,7 @@ export default function QuestionModal({
     setSelectedQuestion,
     newComment,
     setNewComment,
-    handleAddComment,
+    // handleAddComment,
     onToggleAccept, // 🔽
 }: QuestionModalProps) {
     const [data, setData] = useState<Question | null>(null);
@@ -133,8 +133,9 @@ export default function QuestionModal({
                     <CommentForm
                         newComment={newComment}
                         setNewComment={setNewComment}
-                        handleAddComment={handleAddComment}
+                        // handleAddComment={handleAddComment}
                         color={selectedQuestion.color}
+                        questionId={selectedQuestion.id} // ⬅️ 추가
                     />
                 </div>
 
