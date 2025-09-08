@@ -7,8 +7,7 @@ export interface Comment {
     text: string; // 댓글 본문
     // author: string; // 댓글 작성자 (여기서는 "익명" 등)
     createdAt: Date; // 댓글 작성 시각 (권장: 앞으로는 이걸 쓰자)
-    // timestamp?: Date; // 예전 코드에서 쓰던 필드 → 하위호환용으로 남겨둔 옵션
-    adopt:boolean;
+    timestamp?: Date; // 예전 코드에서 쓰던 필드 → 하위호환용으로 남겨둔 옵션
 }
 
 export interface Question {
