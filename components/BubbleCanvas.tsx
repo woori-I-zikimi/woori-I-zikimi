@@ -474,7 +474,8 @@ export default function BubbleCanvas({
       ref={containerRef}
       className="w-full"
       style={{
-        height: "100vh",
+        // height: "100vh",
+        height: "calc(100vh - 100px)", // ✅ 입력창 영역만큼 잘라냄
         cursor: "default",
         // pointerEvents: selectedQuestion ? "none" : "auto",
       }}
