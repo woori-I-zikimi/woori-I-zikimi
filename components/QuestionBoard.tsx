@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Send } from "lucide-react";
 import { bubbleColors } from "./bubbleColors";
 import { Question, Comment } from "./types";
 import { parseQuestionText } from "./util";
 import BubbleCanvas from "./BubbleCanvas";
 import QuestionModal from "./QuestionModal";
-import { addQuestion, listenQuestions } from "@/lib/db";
+import { addQuestion, listenQuestions, deleteQuestion } from "@/lib/db";
+import NeedleToggle from "./NeedleToggle";
 
 export default function QuestionBoard() {
     const [questions, setQuestions] = useState<Question[]>([]); // 현재 보드에 떠 있는 모든 질문
@@ -18,10 +19,20 @@ export default function QuestionBoard() {
     const [newComment, setNewComment] = useState(""); // 모달에서 입력 중인 댓글 텍스트
     const [inputRows, setInputRows] = useState(1); // textarea 높이(줄 수) 자동 조절
     const inputRef = useRef<HTMLTextAreaElement>(null); // 제출 후 포커스 유지
+    const [needleMode, setNeedleMode] = useState(false);
     const isComposingRef = useRef(false);
     const lastCompositionEndTsRef = useRef(0);
 
     const uid = () => Math.random().toString(36).slice(2, 10);
+
+    // 바늘 모드
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setNeedleMode(false);
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, []);
 
     // Firestore: questions 실시간 구독
     useEffect(() => {
@@ -206,6 +217,24 @@ export default function QuestionBoard() {
                 setQuestions={setQuestions}
                 selectedQuestion={selectedQuestion}
                 setSelectedQuestion={setSelectedQuestion}
+                needleMode={needleMode}
+                onPop={useCallback(
+                    async (q: Question) => {
+                        setQuestions((prev) =>
+                            prev.filter((it) => it.id !== q.id)
+                        );
+                        try {
+                            await deleteQuestion(q.id);
+                        } catch (err) {
+                            console.error("deleteQuestion failed:", err);
+                        }
+                    },
+                    [setQuestions]
+                )}
+            />
+            <NeedleToggle
+                active={needleMode}
+                onToggle={() => setNeedleMode((v) => !v)}
             />
 
             {/* 하단 입력창 */}
