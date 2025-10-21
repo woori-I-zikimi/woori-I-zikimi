@@ -12,6 +12,7 @@ import {
     query,
     serverTimestamp,
     updateDoc,
+    deleteDoc,
 } from "firebase/firestore";
 import { db, ensureAnonSignIn } from "./firebaseClient";
 
@@ -98,6 +99,10 @@ export async function getQuestion(id: string) {
         console.error("[getQuestion] FirebaseError:", e?.code, e?.message, e);
         throw e;
     }
+}
+
+export async function deleteQuestion(id: string) {
+    await deleteDoc(doc(db, "questions", id));
 }
 
 // === Comments === (그대로 사용)
