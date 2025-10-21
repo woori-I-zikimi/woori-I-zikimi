@@ -580,8 +580,8 @@ export default function BubbleCanvas({
             ref={containerRef}
             className="w-full"
             style={{
-                height: "100vh",
                 cursor: "default",
+                height: "calc(100vh - 100px)", // :흰색_확인_표시: 입력창 영역만큼 잘라냄
             }}
         />
     );
