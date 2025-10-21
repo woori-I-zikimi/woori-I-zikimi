@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Send } from "lucide-react";
 import { bubbleColors } from "./bubbleColors";
 import { Question, Comment } from "./types";
 import { parseQuestionText } from "./util";
 import BubbleCanvas from "./BubbleCanvas";
 import QuestionModal from "./QuestionModal";
-import { addQuestion, listenQuestions, deleteQuestion } from "@/lib/db";
-import NeedleToggle from "./NeedleToggle";
+import { addQuestion, listenQuestions } from "@/lib/db";
 
 export default function QuestionBoard() {
     const [questions, setQuestions] = useState<Question[]>([]); // 현재 보드에 떠 있는 모든 질문
@@ -19,18 +18,10 @@ export default function QuestionBoard() {
     const [newComment, setNewComment] = useState(""); // 모달에서 입력 중인 댓글 텍스트
     const [inputRows, setInputRows] = useState(1); // textarea 높이(줄 수) 자동 조절
     const inputRef = useRef<HTMLTextAreaElement>(null); // 제출 후 포커스 유지
-    const [needleMode, setNeedleMode] = useState(false);
+    const isComposingRef = useRef(false);
+    const lastCompositionEndTsRef = useRef(0);
 
     const uid = () => Math.random().toString(36).slice(2, 10);
-
-    // 바늘 모드
-    useEffect(() => {
-        const onKey = (e: KeyboardEvent) => {
-            if (e.key === "Escape") setNeedleMode(false);
-        };
-        window.addEventListener("keydown", onKey);
-        return () => window.removeEventListener("keydown", onKey);
-    }, []);
 
     // Firestore: questions 실시간 구독
     useEffect(() => {
@@ -181,10 +172,23 @@ export default function QuestionBoard() {
         );
     };
 
+    // 2) Enter 처리 로직 교체 (IME 조합/직후 Enter 무시)
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === "Enter") {
-            if (e.shiftKey) return;
+        if (e.key === "Enter" && !e.shiftKey) {
+            // 줄바꿈/폼 submit 기본동작은 항상 차단
             e.preventDefault();
+
+            const composing =
+                isComposingRef.current ||
+                (e.nativeEvent as any).isComposing === true;
+            const keyCode = (e.nativeEvent as any).keyCode; // 229 = IME
+            const justEnded =
+                performance.now() - lastCompositionEndTsRef.current < 80; // 버퍼 80ms
+
+            // 조합 중/직후 Enter는 "전송만" 하지 않음 (줄바꿈은 이미 막았음)
+            if (composing || keyCode === 229 || justEnded) return;
+
+            // 정상 전송
             handleSubmit();
         }
     };
@@ -202,33 +206,14 @@ export default function QuestionBoard() {
                 setQuestions={setQuestions}
                 selectedQuestion={selectedQuestion}
                 setSelectedQuestion={setSelectedQuestion}
-                needleMode={needleMode}
-                onPop={useCallback(
-                    async (q: Question) => {
-                        setQuestions((prev) =>
-                            prev.filter((it) => it.id !== q.id)
-                        );
-                        try {
-                            await deleteQuestion(q.id);
-                        } catch (err) {
-                            console.error("deleteQuestion failed:", err);
-                        }
-                    },
-                    [setQuestions]
-                )}
-            />
-
-            <NeedleToggle
-                active={needleMode}
-                onToggle={() => setNeedleMode((v) => !v)}
             />
 
             {/* 하단 입력창 */}
-            <div className="needle-safe fixed bottom-0 left-0 right-0 bg-slate-50 flex items-center justify-center px-4 py-4 z-50">
+            <div className="fixed bottom-0 left-0 right-0 bg-slate-50 flex items-center justify-center px-4 py-4 z-50 border-orange-100">
                 <form
                     onSubmit={(e) => {
+                        // 폼의 기본 제출(리로드)만 막고, 여기서는 handleSubmit을 호출하지 않음
                         e.preventDefault();
-                        handleSubmit();
                     }}
                     className="w-full max-w-2xl flex items-center gap-2"
                 >
@@ -242,8 +227,9 @@ export default function QuestionBoard() {
                         className="flex-1 px-4 py-3 text-black placeholder:text-gray-500 bg-white border-2 border-gray-300 rounded-2xl shadow-lg resize-none outline-none"
                     />
                     <button
-                        type="submit"
+                        type="button"
                         className="h-11 px-4 rounded-xl bg-blue-600 text-white shadow active:scale-[0.98] disabled:opacity-50"
+                        onClick={() => handleSubmit()}
                         disabled={!newQuestion.trim()}
                         aria-label="질문 등록"
                         title="질문 등록"
